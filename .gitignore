@@ -1,0 +1,10 @@
+.cache
+
+data/cityscapes
+data/gopro
+data/istd
+data/lol
+data/omnidata
+data/rain
+
+.DS_Store
