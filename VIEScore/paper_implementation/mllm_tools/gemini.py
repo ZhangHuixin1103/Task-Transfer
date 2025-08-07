@@ -68,7 +68,7 @@ def save_image_from_url(url, base_save_directory='tmp', file_name=None):
         raise Exception(f"Failed to retrieve image from URL. Status code: {response.status_code}")
 
 class Gemini():
-    def __init__(self, model_name="gemini-1.5-pro-latest"):
+    def __init__(self, model_name="gemini-1.5-flash-latest"):
         # Create the model
         # See https://ai.google.dev/api/python/google/generativeai/GenerativeModel
         generation_config = {
@@ -135,7 +135,8 @@ class Gemini():
         )
         try:
           response = chat_session.send_message(text_prompt)
-        except:
+        except Exception as e:
+          print(f"Detailed API Error: {e}")
           return "Error in sending message to chat session."
         return self.extract_response(response)
     
