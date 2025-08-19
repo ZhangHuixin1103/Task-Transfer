@@ -1,7 +1,7 @@
+from io import BytesIO
 from google import genai
 from google.genai import types
 from PIL import Image
-from io import BytesIO
 
 client = genai.Client(api_key="AIzaSyA0UE4rh5PCyw_HEmHDeZ3aEVAx85TfmGA")
 
