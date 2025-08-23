@@ -6,5 +6,7 @@ data/istd
 data/lol
 data/omnidata
 data/rain
+data/tasks
+data/dataset
 
 .DS_Store
