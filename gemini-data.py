@@ -27,8 +27,6 @@ EMBEDDER = SentenceTransformer('all-MiniLM-L6-v2')
 print("Model loaded successfully.")
 
 
-# --- 2. Function Definitions ---
-
 def sample_task_data(task_name: str, task_path: Path, train_ratio: float, output_dir: Path) -> list[tuple[Path, Path]]:
     """
     Samples data for a single task and writes the list of sampled files to a dedicated .txt file.
@@ -71,7 +69,6 @@ def sample_task_data(task_name: str, task_path: Path, train_ratio: float, output
     return train_pairs
 
 
-# Helper function to read image files into the required format.
 def read_image_bytes(path: Path) -> types.Part:
     """Reads an image file and returns it as a types.Part object."""
     # Infer MIME type from file extension for better accuracy
@@ -87,7 +84,7 @@ def read_image_bytes(path: Path) -> types.Part:
     with open(path, 'rb') as f:
         return types.Part.from_bytes(data=f.read(), mime_type=mime_type)
 
-# MODIFIED FUNCTION
+
 def query_gemini(image_paths: list[Path], prompt: str, num_repeats: int) -> list[str]:
     """
     Queries the Gemini API using the client-based approach from the example file.
