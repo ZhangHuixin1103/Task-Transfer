@@ -25,9 +25,8 @@ TRAIN_RATIO = 0.3
 # Local VLM Model Configuration
 LOCAL_MODEL_ID = "Qwen/Qwen2.5-VL-32B-Instruct"
 
-# IMPORTANT: Set a small number for testing before running the full dataset
-# Set this to a small number (e.g., 10) to verify the code works.
-NUM_SAMPLES_TO_PROCESS = 100000
+# Set a small number for testing before running the full dataset
+NUM_SAMPLES_TO_PROCESS = 10000
 
 # Load the SentenceTransformer model globally
 print("Loading the semantic similarity model...")
@@ -168,9 +167,10 @@ def load_processed_data(json_path: Path) -> list:
         # Find the last valid '}' to avoid parsing errors from a partially written object
         last_brace_pos = content.rfind('}')
         if last_brace_pos == -1:
-            return [] # No complete objects found
-        content = content[:last_brace_pos + 1] + ']' # Truncate and close the array
-    
+            return []  # No complete objects found
+        content = content[:last_brace_pos + 1] + \
+            ']'  # Truncate and close the array
+
     try:
         return json.loads(content)
     except json.JSONDecodeError:
@@ -178,68 +178,118 @@ def load_processed_data(json_path: Path) -> list:
         return []
 
 
+def prepare_dataset_file_for_append(json_path: Path):
+    """Prepares the JSON file for appending."""
+    # If file is new or effectively empty, write the opening bracket.
+    if not json_path.exists() or os.path.getsize(json_path) <= 2:
+        with open(json_path, 'w', encoding='utf-8') as f:
+            f.write("[\n")
+        return
+
+    # If the file exists, we need to ensure it's in a ready-to-append state.
+    with open(json_path, 'r+', encoding='utf-8') as f:
+        f.seek(0, os.SEEK_END)
+        if f.tell() < 3: return
+
+        # Read the last few characters to check the state
+        f.seek(f.tell() - 3)
+        content_end = f.read().strip()
+
+        # Case 1: File was completed. Remove ']' and add a comma.
+        if content_end.endswith(']'):
+            print("Found a completed JSON file. Removing ']' to append new data.")
+            f.seek(f.tell() - (len(content_end) - content_end.rfind(']')))
+            f.truncate()
+            f.write(",\n")
+        # Case 2: File was interrupted after an object. Add a comma.
+        elif content_end.endswith('}'):
+             f.seek(0, os.SEEK_END)
+             f.write(",\n")
+        # Case 3: File already ends with a comma, or just '['. Do nothing.
+
+
 def main():
     """Main execution function to generate the comparative dataset."""
+    # Step 1: Load existing data to determine the state.
+    output_json_path = OUTPUT_DIR / "train_dataset.json"
+    processed_data = load_processed_data(output_json_path)
+
     all_tasks = [d for d in DATA_ROOT.iterdir() if d.is_dir()]
     if len(all_tasks) < 2:
         print("Error: Could not find at least two task directories.")
         return
 
-    taskA_path, taskB_path = random.sample(all_tasks, 2)
-    taskA_name, taskB_name = taskA_path.name, taskB_path.name
+    if not processed_data:
+        # CASE 1: No existing data. This is a fresh start.
+        print("No existing data found. Starting a new random task pair.")
+        taskA, taskB = random.sample(all_tasks, 2)
+        taskA_name, taskB_name = taskA.name, taskB.name
+    else:
+        # CASE 2: Resuming from existing data. Infer tasks from the LAST entry.
+        last_entry = processed_data[-1]
+        try:
+            taskA_name = Path(last_entry['taskA_input']).parts[0]
+            taskB_name = Path(last_entry['taskB_input']).parts[0]
+            print(f"Resuming tasks: '{taskA_name}' and '{taskB_name}'.")
+        except (KeyError, IndexError):
+            print("Error: Could not parse last entry in dataset. Please check the file.")
+            return
+
+    taskA_path = DATA_ROOT / taskA_name
+    taskB_path = DATA_ROOT / taskB_name
+
     trainA_pairs = sample_task_data(taskA_name, taskA_path, TRAIN_RATIO, OUTPUT_DIR)
     trainB_pairs = sample_task_data(taskB_name, taskB_path, TRAIN_RATIO, OUTPUT_DIR)
-
     if not trainA_pairs or not trainB_pairs:
-        print("Sampling list is empty. Terminating.")
+        print("Sampling list for current tasks is empty. Terminating.")
         return
 
-    combos = [(*pairA, *pairB) for pairA in trainA_pairs for pairB in trainB_pairs]
-    combos_to_process = combos[:NUM_SAMPLES_TO_PROCESS]
-    
-    output_json_path = OUTPUT_DIR / f"train_dataset_{taskA_name}_{taskB_name}.json"
-
-    # RESUME
-    processed_data = load_processed_data(output_json_path)
+    # Step 2: Calculate what needs to be done.
     processed_combos_set = set()
     for item in processed_data:
-        # Create a unique key for each processed combination to check for existence
-        key = (item['taskA_input'], item['taskA_output'], item['taskB_input'], item['taskB_output'])
-        processed_combos_set.add(key)
-    
-    is_resuming = len(processed_combos_set) > 0
-    if is_resuming:
-        print(f"Resuming. Found {len(processed_combos_set)} previously generated entries.")
+        # Only add items for the current task pair to the set
+        if item['taskA_input'].startswith(taskA_name) and item['taskB_input'].startswith(taskB_name):
+            key = (item['taskA_input'], item['taskA_output'],
+                   item['taskB_input'], item['taskB_output'])
+            processed_combos_set.add(key)
+    num_already_processed = len(processed_combos_set)
+    print(f"Found {num_already_processed} existing entries for the current task pair.")
 
-    print(f"Total combinations to process: {len(combos_to_process)}. Starting generation...")
+    num_to_generate = NUM_SAMPLES_TO_PROCESS - num_already_processed
+    if num_to_generate <= 0:
+        print(f"Target of {NUM_SAMPLES_TO_PROCESS} samples for this task pair is already met. Starting a new pair on the next run.")
+        # Ensure the file is properly closed with ']'
+        with open(output_json_path, "a", encoding='utf-8') as f:
+            f.write("\n]")
+        return
 
-    # Open the file in 'w' mode to overwrite the (potentially broken) file with a clean slate,
-    # starting with the already processed data. This is safer than appending.
-    with open(output_json_path, "w", encoding='utf-8') as f:
-        # Write the opening bracket
-        f.write("[\n")
-        
-        # First, write back all the data we successfully loaded
-        for i, item in enumerate(processed_data):
-            json.dump(item, f, indent=2, ensure_ascii=False)
-            if i < len(processed_data) - 1:
-                f.write(",\n")
-        
-        # Now, iterate through the combinations and process only the new ones
+    all_combos_for_pair = [(*pairA, *pairB)
+                           for pairA in trainA_pairs for pairB in trainB_pairs]
+    unprocessed_combos = []
+    for (a_in, a_out, b_in, b_out) in all_combos_for_pair:
+        key = (str(a_in.relative_to(DATA_ROOT)), str(a_out.relative_to(DATA_ROOT)),
+               str(b_in.relative_to(DATA_ROOT)), str(b_out.relative_to(DATA_ROOT)))
+        if key not in processed_combos_set:
+            unprocessed_combos.append((a_in, a_out, b_in, b_out))
+
+    # If the number of available unprocessed combos is less than what we want to generate,
+    # just process all of them. Otherwise, take the amount we need.
+    if len(unprocessed_combos) < num_to_generate:
+        print(f"Warning: Only {len(unprocessed_combos)} new combinations are available, which is less than the target of {num_to_generate}. Processing all available.")
+        num_to_generate = len(unprocessed_combos)
+    print(f"Need to generate {num_to_generate} new samples.")
+
+    combos_to_process = unprocessed_combos[:num_to_generate]
+    if not combos_to_process:
+        print("No new combinations to process for this pair, but target not met. Check your data.")
+        return
+
+    # Step 3: Execute the generation.
+    prepare_dataset_file_for_append(output_json_path)
+
+    with open(output_json_path, "a", encoding='utf-8') as f:
         is_first_new_write = True
         for (a_in, a_out, b_in, b_out) in tqdm(combos_to_process, desc="Generating Descriptions"):
-            current_key = (
-                str(a_in.relative_to(DATA_ROOT)),
-                str(a_out.relative_to(DATA_ROOT)),
-                str(b_in.relative_to(DATA_ROOT)),
-                str(b_out.relative_to(DATA_ROOT))
-            )
-            
-            # Skip if this combination is already processed
-            if current_key in processed_combos_set:
-                continue
-
-            # This is a new item, so we process it
             prompt = (
                 "You are an expert in analyzing image processing tasks. Below are two tasks, A and B, each with an input and an output image. "
                 "The first two images belong to Task A, and the next two images belong to Task B. "
@@ -248,22 +298,18 @@ def main():
             description = query_local_vlm([a_in, a_out, b_in, b_out], prompt)
 
             result = {
-                "taskA_input": current_key[0],
-                "taskA_output": current_key[1],
-                "taskB_input": current_key[2],
-                "taskB_output": current_key[3],
+                "taskA_input": str(a_in.relative_to(DATA_ROOT)),
+                "taskA_output": str(a_out.relative_to(DATA_ROOT)),
+                "taskB_input": str(b_in.relative_to(DATA_ROOT)),
+                "taskB_output": str(b_out.relative_to(DATA_ROOT)),
                 "description": description
             }
 
-            # Add a comma if we are adding to existing content, or if it's not the first new item
-            if is_resuming or not is_first_new_write:
+            if not is_first_new_write:
                 f.write(",\n")
 
             json.dump(result, f, indent=2, ensure_ascii=False)
             is_first_new_write = False
-
-        # Close the JSON array after the loop completes
-        f.write("\n]")
 
     print(f"Data generation complete! The dataset is saved to: {output_json_path}")
 
