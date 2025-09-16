@@ -11,7 +11,8 @@ from torch.utils.data import Dataset
 from deepspeed import zero
 from deepspeed.runtime.zero.partition_parameters import ZeroParamStatus
 import transformers
-from transformers import GPTQConfig, deepspeed
+from transformers import GPTQConfig
+import deepspeed
 from transformers.trainer import Trainer
 from transformers.trainer_pt_utils import LabelSmoother
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training

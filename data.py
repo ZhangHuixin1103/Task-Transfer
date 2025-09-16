@@ -25,7 +25,7 @@ TRAIN_RATIO = 0.3
 LOCAL_MODEL_ID = "Qwen/Qwen2.5-VL-32B-Instruct"
 
 # Set a small number for testing before running the full dataset
-NUM_SAMPLES_TO_PROCESS = 10000
+NUM_SAMPLES_TO_PROCESS = 2000  # 10000
 
 # 2. Load local VLM model
 print(f"Loading local VLM: {LOCAL_MODEL_ID}...")

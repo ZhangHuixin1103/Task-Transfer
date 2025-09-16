@@ -6,9 +6,9 @@ Test how good LVLMs are in visual in-context learning
 
 | Task | colorization | deblurring | dehazing | demoireing | denoising | deraining | harmonization | inpainting | light enhancement | reflection removal | shadow removal | style transfer |
 |:----:|:------------:|:----------:|:--------:|:----------:|:---------:|:---------:|:-------------:|:----------:|:-----------------:|:------------------:|:--------------:|:--------------:|
-| **colorization**       | ✔ |   |   |   |   |   |   |   |   |   |   |   |
-| **deblurring**         |   | ✔ |   |   |   |   |   |   |   |   |   |   |
-| **dehazing**           |   |   | ✔ |   |   |   |   |   |   |   |   |   |
+| **colorization**       | ✔ |   |   |   |   |   | ✔ |   |   |   |   | ✔ |
+| **deblurring**         |   | ✔ | ✔ | ✔ |   | ✔ |   |   |   |   |   |   |
+| **dehazing**           |   |   | ✔ |   | ✔ | ✔ |   |   |   |   |   |   |
 | **demoireing**         |   |   |   | ✔ |   |   |   |   |   |   |   |   |
 | **denoising**          |   | ✔ |   |   | ✔ |   |   |   | ✔ |   |   |   |
 | **deraining**          |   |   |   |   | ✔ | ✔ |   |   |   |   |   | ✔ |
@@ -16,5 +16,5 @@ Test how good LVLMs are in visual in-context learning
 | **inpainting**         |   |   |   |   |   |   |   | ✔ |   |   |   |   |
 | **light enhancement**  |   |   |   |   |   | ✔ |   |   | ✔ |   | ✔ |   |
 | **reflection removal** |   |   | ✔ |   |   |   |   |   |   | ✔ |   |   |
-| **shadow removal**     |   |   |   |   |   | ✔ |   |   |   |   | ✔ |   |
+| **shadow removal**     |   |   |   |   |   | ✔ |   |   |   | ✔ | ✔ |   |
 | **style transfer**     |   |   |   |   |   |   |   |   |   |   |   | ✔ |

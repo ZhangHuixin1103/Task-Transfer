@@ -1,10 +1,10 @@
 #!/bin/bash
-export HF_HOME="./.cache"
-export CUDA_VISIBLE_DEVICES=6
+export HF_HOME="../.cache"
+export CUDA_VISIBLE_DEVICES=1
 export CUDA_DEVICE_MAX_CONNECTIONS=1
 DIR=`pwd`
 
-MODEL="Qwen/Qwen-VL-Chat" #"Qwen/Qwen-VL-Chat"/"Qwen/Qwen-VL" # Set the path if you do not want to load from huggingface directly
+MODEL="Qwen/Qwen2.5-VL-7B-Instruct" #"Qwen/Qwen-VL-Chat"/"Qwen/Qwen-VL" # Set the path if you do not want to load from huggingface directly
 # ATTENTION: specify the path to your training data, which should be a json file consisting of a list of conversations.
 # See the section for finetuning in README for more information.
 DATA="/mnt/data/huixin/Task-Transfer/data/dataset/converted_data.json"
@@ -19,7 +19,7 @@ python finetune.py \
     --per_device_train_batch_size 1 \
     --per_device_eval_batch_size 1 \
     --gradient_accumulation_steps 8 \
-    --evaluation_strategy "no" \
+    --eval_strategy "no" \
     --save_strategy "steps" \
     --save_steps 1000 \
     --save_total_limit 10 \
