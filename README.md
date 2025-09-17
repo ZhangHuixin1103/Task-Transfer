@@ -9,11 +9,11 @@ Test how good LVLMs are in visual in-context learning
 | **colorization**       | ✔ |   |   |   |   |   | ✔ |   |   |   |   | ✔ |
 | **deblurring**         |   | ✔ | ✔ | ✔ |   | ✔ |   |   |   |   |   |   |
 | **dehazing**           |   |   | ✔ |   | ✔ | ✔ |   |   |   |   |   |   |
-| **demoireing**         |   |   |   | ✔ |   |   |   |   |   |   |   |   |
+| **demoireing**         |   |   | ✔ | ✔ |   |   |   |   |   |   |   |   |
 | **denoising**          |   | ✔ |   |   | ✔ |   |   |   | ✔ |   |   |   |
-| **deraining**          |   |   |   |   | ✔ | ✔ |   |   |   |   |   | ✔ |
+| **deraining**          |   |   |   | ✔ | ✔ | ✔ |   |   |   |   |   | ✔ |
 | **harmonization**      |   |   |   |   |   |   | ✔ |   |   |   |   | ✔ |
-| **inpainting**         |   |   |   |   |   |   |   | ✔ |   |   |   |   |
+| **inpainting**         | ✔ |   |   |   |   |   | ✔ | ✔ | ✔ |   |   |   |
 | **light enhancement**  |   |   |   |   |   | ✔ |   |   | ✔ |   | ✔ |   |
 | **reflection removal** |   |   | ✔ |   |   |   |   |   |   | ✔ |   |   |
 | **shadow removal**     |   |   |   |   |   | ✔ |   |   |   | ✔ | ✔ |   |
