@@ -1,0 +1,57 @@
+[
+  {
+    "image": "demo/images/10095.png",
+    "conversations": [
+      {
+        "from": "human",
+        "value": "Is the value of Favorable 38 in 2015?\n<image>"
+      },
+      {
+        "from": "gpt",
+        "value": "Yes"
+      }
+    ]
+  },
+  {
+    "image": "demo/images/10095.png",
+    "conversations": [
+      {
+        "from": "human",
+        "value": "How many values are below 40 in Unfavorable graph?\n<image>"
+      },
+      {
+        "from": "gpt",
+        "value": "6"
+      }
+    ]
+  },
+  {
+    "image": "demo/images/10149.png",
+    "conversations": [
+      {
+        "from": "human",
+        "value": "In which year the value was 51?\n<image>"
+      },
+      {
+        "from": "gpt",
+        "value": "2014"
+      }
+    ]
+  },
+  {
+    "image": [
+      "cats/001.jpg",
+      "cats/002.jpg"
+    ],
+    "conversations": [
+      {
+        "from": "human",
+        "value": "<image>\n<image>\nWhat are the differences between these two cats?"
+      },
+      {
+        "from": "gpt",
+        "value": "The first cat is an orange tabby with short fur and green eyes, while the second is a gray Siamese with blue eyes and pointed coloration. They also appear to be in different environments - the first is indoors on a couch, the second is outdoors in a garden."
+      }
+    ]
+  }
+]
