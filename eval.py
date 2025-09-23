@@ -26,8 +26,6 @@ from GrAInS.src.utils.config import MODEL_NAME_MAP
 from GrAInS.src.utils.model import load_vlm_model_and_processor
 from VIEScore.paper_implementation.imagen_museum.utils import \
     write_entry_to_json_file
-from VIEScore.paper_implementation.mllm_tools.gemini import Gemini
-from VIEScore.viescore import VIEScore
 
 # Add VIEScore path
 viescore_path = '/data1/tzz/huixin/Task-Transfer/VIEScore'
@@ -775,11 +773,11 @@ def run_evaluation(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="VICL Evaluation Pipeline")
     parser.add_argument("--use_qwen_for_prompt", action="store_true",
-                        default=True, help="Use Qwen for generating text prompt")
+                        default=False, help="Use Qwen for generating text prompt")
     parser.add_argument("--fixed_prompt", type=str, default=None,
                         help="Fixed text prompt if not using Qwen")
     parser.add_argument("--use_mask", action="store_true",
-                        default=True, help="Use mask for generation")
+                        default=False, help="Use mask for generation")
     parser.add_argument("--num_tries", type=int, default=10,
                         help="Number of generation attempts per combination")
     args = parser.parse_args()
