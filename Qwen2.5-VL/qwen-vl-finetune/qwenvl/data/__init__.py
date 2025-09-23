@@ -2,8 +2,8 @@ import re
 
 # Define placeholders for dataset paths
 VICL = {
-    "annotation_path": "/mnt/data/huixin/Task-Transfer/data/dataset/converted_dataset.json",
-    "data_path": "/mnt/data/huixin/Task-Transfer/data/tasks/",  # Can be empty if paths are in annotations
+    "annotation_path": "/data1/tzz/huixin/Task-Transfer/data/dataset/converted_dataset.json",
+    "data_path": "/data1/tzz/huixin/Task-Transfer/data/tasks/",  # Can be empty if paths are in annotations
 }
 
 CAMBRIAN_737K = {

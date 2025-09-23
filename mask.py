@@ -17,26 +17,26 @@ from GrAInS.src.attribution.gradient.vlm_grad import get_token_attributions_cont
 from GrAInS.src.utils.config import MODEL_NAME_MAP
 from GrAInS.src.utils.model import load_vlm_model_and_processor
 
-GEMINI_API_KEY = "AIzaSyA0UE4rh5PCyw_HEmHDeZ3aEVAx85TfmGA"
+GEMINI_API_KEY = "xxx"  # Replace with your Gemini API key
 GEMINI_MODEL = "gemini-2.0-flash-preview-image-generation"
 QWEN_MODEL = "qwen-2.5-vl-7b-instruct"
 QWEN_MODEL_NAME = MODEL_NAME_MAP[QWEN_MODEL]
 
-SRC_INPUT = "./data/demo/deraining/1.jpg"
-SRC_OUTPUT = "./data/demo/deraining/1-derain.jpg"
-DST_INPUT = "./data/demo/removal/2.png"
+SRC_INPUT = "./data/demo/deraining/input/1.jpg"
+SRC_OUTPUT = "./data/demo/deraining/output/1.jpg"
+DST_INPUT = "./data/demo/shadow_removal/2.png"
 
 CONTRAST_PROMPT = "Identify and correct low-frequency illumination degradations (shadow-like, spatially coherent)."
 POS_RESPONSE = "Shadows and uneven illumination are corrected smoothly and consistently."
 NEG_RESPONSE = "Shadows remain and the illumination is not corrected."
 
-OUT_DIR = "./data/demo/tmp"
+OUT_DIR = "./data/tmp"
 os.makedirs(OUT_DIR, exist_ok=True)
 
 TOKENS_TXT = os.path.join(OUT_DIR, "pos_neg_tokens.txt")
-HEATMAP_PNG = os.path.join(OUT_DIR, "2_heatmap.png")
-MASK_PNG = os.path.join(OUT_DIR, "2_mask.png")
-OVERLAY_PNG = os.path.join(OUT_DIR, "2_overlay.png")
+HEATMAP_PNG = os.path.join(OUT_DIR, "heatmap.png")
+MASK_PNG = os.path.join(OUT_DIR, "mask.png")
+OVERLAY_PNG = os.path.join(OUT_DIR, "overlay.png")
 
 
 def decode_top_tokens(tokenizer, input_ids, scores: np.ndarray, top_k: int = 15, mode: str = "pos") -> List[Tuple[str, float, int]]:
@@ -205,12 +205,12 @@ def main():
 
     prompt_text = f"""
     You are given three images and one mask:
-    - Image #1 (1.jpg) and #2 (1-derain.jpg) form a visual in-context example of a "deraining" task.
-    - Image #3 (2.png) is the target image to be restored.
+    - Image #1 and #2 form a visual in-context example of a task.
+    - Image #3 is the target image of another task to be restored.
     - The final image, the mask, indicates the regions on Image #3 to be restored. White areas must be restored to remove defects, while black areas must be kept unchanged.
 
     Task:
-    (1) Learn from the deraining example.
+    (1) Learn from the first task example.
     (2) Restore Image #3 by fixing the defects only in the white regions of the mask.
     (3) Leave the black regions of the mask completely untouched. Do not change colors, textures, or objects in these areas.
     (4) Output a single image that is the restored version of Image #3.

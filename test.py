@@ -5,9 +5,9 @@ from io import BytesIO
 
 import PIL.Image
 
-client = genai.Client(api_key="AIzaSyA0UE4rh5PCyw_HEmHDeZ3aEVAx85TfmGA")
+client = genai.Client(api_key="xxx")  # Replace with your Gemini API key
 
-image = PIL.Image.open('data/demo/lighting/2.png')
+image = PIL.Image.open('data/demo/light_enhancement/2.png')
 text_input = ('Hi, This is a picture. Can you output a light enhanced image of it to relight it?',)
 
 response = client.models.generate_content(
