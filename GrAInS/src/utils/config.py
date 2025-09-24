@@ -2,9 +2,10 @@ MODEL_NAME_MAP = {
     "llama-3.1-8b": "meta-llama/Llama-3.1-8B",
     "llama-3.1-8b-instruct": "meta-llama/Llama-3.1-8B-Instruct",
     "qwen-2.5-7b": "Qwen/Qwen2.5-7B",
+    "qwen-2.5-vl-3b-instruct": "Qwen/Qwen2.5-VL-3B-Instruct",
+    "qwen-2.5-vl-7b-instruct": "Qwen/Qwen2.5-VL-7B-Instruct",
     "qwen-2.5-7b-instruct": "Qwen/Qwen2.5-7B-Instruct",
     "llava-1.6-7b": "llava-hf/llava-v1.6-vicuna-7b-hf",
-    "qwen-2.5-vl-7b-instruct": "Qwen/Qwen2.5-VL-7B-Instruct",
     "gemma-3-4b": "google/gemma-3-4b-it",
     "gemma-3-12b": "google/gemma-3-12b-it",
 }

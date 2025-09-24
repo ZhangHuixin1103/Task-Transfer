@@ -28,7 +28,7 @@ from VIEScore.paper_implementation.imagen_museum.utils import \
     write_entry_to_json_file
 
 # Add VIEScore path
-viescore_path = '/data1/tzz/huixin/Task-Transfer/VIEScore'
+viescore_path = '/mnt/data/huixin/Task-Transfer/VIEScore'
 if viescore_path not in sys.path:
     sys.path.append(viescore_path)
 
@@ -45,13 +45,28 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 os.makedirs(TMP_DIR, exist_ok=True)
 
 BASE_MODEL_PATH = "Qwen/Qwen2.5-VL-3B-Instruct"
-QWEN_MODEL = "qwen-2.5-vl-7b-instruct"
+QWEN_MODEL = "qwen-2.5-vl-3b-instruct"
 CHECKPOINT_PATH = "Qwen2.5-VL/qwen-vl-finetune/output/checkpoint-latest"
 
-GEMINI_API_KEY = "sk-xxx"  # Replace with your Gemini API key
+GEMINI_API_KEY = "sk-Uqq0JFYc56oSgTFmrnGRzZgbtV4NBoNJKm18hvnpQKoFHjJF"
 GEMINI_MODEL = "gemini-2.0-flash-preview-image-generation"
-BASE_URL = "https://xxx"  # Replace with your Gemini API base URL
+BASE_URL = "https://globalai.vip"
 API_KEY_HEADER = "api-key"
+
+# How many chars to show when printing long model responses
+TRUNCATE_LEN = 2000
+
+
+def _shorten(text: str, n: int = TRUNCATE_LEN) -> str:
+    """Return at most n characters of text, with an indicator if truncated."""
+    if not text:
+        return ""
+    try:
+        if len(text) <= n:
+            return text
+        return text[:n] + f"... (truncated, total {len(text)} chars)"
+    except Exception:
+        return text
 
 
 # Function to generate unique ID
@@ -158,7 +173,7 @@ def generate_eval_dataset():
     for entry in eval_data:
         taskA = entry['taskA_input'].split('/')[0]
         taskB = entry['taskB_input'].split('/')[0]
-        pair_key = f"{taskA}_{taskB}"
+        pair_key = f"{taskA}__{taskB}"
         grouped.setdefault(pair_key, []).append(entry)
 
     return eval_data, grouped
@@ -195,7 +210,7 @@ def generate_text_prompt(taskA_input, taskA_output, taskB_input, model, processo
                 },
                 {
                     "type": "text",
-                    "text": "You are an expert in analyzing image processing tasks. Below are two vision tasks, A and B.\nThe Picture 1 and 2 belong to Task A, 1 is input and 2 is output; the third image Picture 3 is input of Task B.\nPlease analyze and describe the key differences between the two tasks. Focus on the target goal, the type of degradation in the input, and the visual changes from input to output.\nI know you can't see output of task B, but you can guess what task it is based on shortcoming of input.",
+                    "text": "You are an expert in analyzing image processing tasks. Below are two vision tasks, A and B.\nThe Picture 1 and 2 belong to Task A, 1 is input and 2 is output; the third image Picture 3 is input of Task B.\nPlease analyze and describe the key differences between the two tasks shortly. Focus on the degradation to be removed, for example: 'Remove rain streaks', 'Enhance low light areas', or 'Remove shadows'.\nI know you can't see output of task B, but you can guess what task it is based on shortcoming of input.",
                 },
             ],
         },
@@ -214,13 +229,8 @@ def generate_text_prompt(taskA_input, taskA_output, taskB_input, model, processo
         return_tensors="pt",
     )
 
-    hf_device_map = getattr(model, "hf_device_map", None)
-    if not hf_device_map:
-        try:
-            model_device = next(model.parameters()).device
-            inputs = inputs.to(model_device)
-        except StopIteration:
-            pass
+    model_device = next(model.parameters()).device
+    inputs = inputs.to(model_device)
 
     # Generate output
     with torch.inference_mode():
@@ -496,8 +506,11 @@ def generate_image(taskA_input, taskA_output, taskB_input, text_prompt, mask_pat
         )
 
         for part in response.candidates[0].content.parts:
-            if hasattr(part, 'inline_data'):
+            if part.text:
+                logging.info(f"Gemini returned text:\n---\n{_shorten(part.text)}\n---")
+            if part.inline_data:
                 return Image.open(BytesIO(part.inline_data.data))
+
     except Exception as e:
         logging.warning(f"Gemini generation failed: {e}")
 
@@ -566,10 +579,10 @@ def evaluate_generated(gt_path, gen_path, taskA_input, taskA_output, taskB_input
 
     while not is_verified and tries < max_tries:
         try:
-            #         result = mllm_model.get_parsed_output(prompt)
-            #         print("Raw result from Gemini:\n", result)
+            # result = mllm_model.get_parsed_output(prompt)
+            # print("Raw result from Gemini:\n", result)
             resp = client.models.generate_content(
-                model=GEMINI_MODEL,
+                model="gemini-1.5-pro-latest",
                 contents=parts,
                 config=types.GenerateContentConfig(
                     temperature=0.1,
@@ -642,11 +655,13 @@ def run_evaluation(args):
 
         prompt_qwen_model.eval()
         prompt_qwen_processor = AutoProcessor.from_pretrained(BASE_MODEL_PATH)
+    else:
+        prompt_qwen_model = None
+        prompt_qwen_processor = None
 
     for pair_key, entries in grouped.items():
         logging.info(f"Processing pair: {pair_key}")
-        pair_res_dir = os.path.join(OUTPUT_DIR,
-                                    f"{pair_key.split('_')[0]}__{pair_key.split('_')[1]}")
+        pair_res_dir = os.path.join(OUTPUT_DIR, pair_key)
         os.makedirs(pair_res_dir, exist_ok=True)
         log_path = os.path.join(pair_res_dir, "evaluation_log.jsonl")
 
@@ -662,7 +677,7 @@ def run_evaluation(args):
             pair_best_scores = []
 
             for entry in entries:
-                taskA, taskB = pair_key.split('_')
+                taskA, taskB = pair_key.split('__', 1)
                 taskA_input = entry['taskA_input']
                 taskA_output = entry['taskA_output']
                 taskB_input = entry['taskB_input']
@@ -670,13 +685,12 @@ def run_evaluation(args):
                 taskB_gt_path = os.path.join(DATA_TASKS_DIR, taskB_output)
                 gt_ext = os.path.splitext(taskB_gt_path)[1]
 
-                combo_id = hashed_id(pair_key, taskA_input, taskB_input)
+                combo_id = hashed_id(taskA_input, taskB_input)
                 if combo_id in existing_combo_ids:
                     logging.info(f"Skip existing combination {combo_id}")
                     continue
 
-                combo_tmp_dir = os.path.join(TMP_DIR,
-                                             f"{taskA}__{taskB}", combo_id)
+                combo_tmp_dir = os.path.join(TMP_DIR, pair_key, combo_id)
                 os.makedirs(combo_tmp_dir, exist_ok=True)
 
                 # Step 2: Generate text prompt
@@ -721,11 +735,9 @@ def run_evaluation(args):
                         logging.warning(f"Generation attempt {i} failed: {e}")
 
                 if best_gen_path:
-                    final_dir = os.path.join(OUTPUT_DIR, f"{taskA}__{taskB}")
-                    os.makedirs(final_dir, exist_ok=True)
                     a_name = os.path.basename(taskA_input)
                     b_name = os.path.basename(taskB_input)
-                    final_path = os.path.join(final_dir,
+                    final_path = os.path.join(pair_res_dir,
                                               f"{a_name}_{b_name}_{combo_id}{gt_ext}")
                     os.rename(best_gen_path, final_path)
 
