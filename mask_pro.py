@@ -17,15 +17,12 @@ from peft import PeftModel
 from PIL import Image, ImageFilter
 from qwen_vl_utils import process_vision_info
 from skimage.metrics import peak_signal_noise_ratio, structural_similarity
-from transformers import (AutoProcessor, Qwen2_5_VLForConditionalGeneration,
-                          StoppingCriteria, StoppingCriteriaList)
+from transformers import AutoProcessor, Qwen2_5_VLForConditionalGeneration
 
-from GrAInS.src.attribution.gradient.vlm_grad import \
-    get_token_attributions_contrastive
+from GrAInS.src.attribution.gradient.vlm_grad import get_token_attributions_contrastive
 from GrAInS.src.utils.config import MODEL_NAME_MAP
 from GrAInS.src.utils.model import load_vlm_model_and_processor
-from VIEScore.paper_implementation.imagen_museum.utils import \
-    write_entry_to_json_file
+from VIEScore.paper_implementation.imagen_museum.utils import write_entry_to_json_file
 
 # Add VIEScore path
 viescore_path = '/data1/tzz/huixin/Task-Transfer/VIEScore'
@@ -58,17 +55,6 @@ API_KEY_HEADER = "api-key"
 TRUNCATE_LEN = 2000
 
 
-def _shorten(text: str, n: int = TRUNCATE_LEN) -> str:
-    if not text:
-        return ""
-    try:
-        if len(text) <= n:
-            return text
-        return text[:n] + f"... (truncated, total {len(text)} chars)"
-    except Exception:
-        return text
-
-
 def hashed_id(*parts) -> str:
     h = hashlib.sha1()
     for p in parts:
@@ -82,8 +68,7 @@ def create_gemini_client():
         from google import genai
         from google.genai import types
     except Exception as e:
-        raise RuntimeError(
-            "Gemini client imports failed. Needed only for VIEScore evaluation. Error: " + str(e))
+        raise RuntimeError("Gemini client imports failed. Needed only for VIEScore evaluation. Error: " + str(e))
 
     return genai.Client(
         api_key=GEMINI_API_KEY,
@@ -135,8 +120,7 @@ def generate_eval_dataset():
             pairs = []
             for inp in inputs:
                 stem, ext = os.path.splitext(inp)
-                matching_out = next(
-                    (out for out in outputs if os.path.splitext(out)[0] == stem), None)
+                matching_out = next((out for out in outputs if os.path.splitext(out)[0] == stem), None)
                 if matching_out:
                     pairs.append({
                         "input": os.path.join(task, 'input', inp),
@@ -167,15 +151,13 @@ def generate_eval_dataset():
             random.shuffle(candidates)
             selected = candidates[:100]
             if len(selected) < 100:
-                logging.warning(
-                    f"Only {len(selected)} combos for {taskA} -> {taskB}!")
+                logging.warning(f"Only {len(selected)} combos for {taskA} -> {taskB}!")
             eval_data.extend(selected)
 
         with open(EVAL_DATASET_JSON, 'w') as f:
             json.dump(eval_data, f, indent=4)
 
-        logging.info(
-            f"Generated {len(eval_data)} new combos for eval dataset.")
+        logging.info(f"Generated {len(eval_data)} new combos for eval dataset.")
 
     # Group by task pairs
     grouped = {}
@@ -202,8 +184,7 @@ def generate_text_prompt(taskA_input, taskA_output, taskB_input, model, processo
         taskB = taskB_input.split('/')[0]
 
         # Replace placeholders with actual task names
-        prompt = fixed_prompt.replace('[TASK_A_DEGRADATION]', taskA).replace(
-            '[TASK_B_DEGRADATION]', taskB)
+        prompt = fixed_prompt.replace('[TASK_A_DEGRADATION]', taskA).replace('[TASK_B_DEGRADATION]', taskB)
 
         # Logging the final prompt
         logging.info(f"Using fixed prompt:\n{prompt}")
@@ -240,7 +221,7 @@ def generate_text_prompt(taskA_input, taskA_output, taskB_input, model, processo
         },
     ]
 
-    # Prepare inputs (Qwen processor if provided)
+    # Prepare inputs
     prompt = processor.apply_chat_template(
         messages, tokenize=False, add_generation_prompt=True
     )
@@ -256,7 +237,7 @@ def generate_text_prompt(taskA_input, taskA_output, taskB_input, model, processo
     model_device = next(model.parameters()).device
     inputs = inputs.to(model_device)
 
-    # Generate output text (Qwen)
+    # Generate output text
     with torch.inference_mode():
         generated_ids = model.generate(
             **inputs,
@@ -282,7 +263,7 @@ def generate_text_prompt(taskA_input, taskA_output, taskB_input, model, processo
 
 
 # -------------------------
-# GrAInS / mask utilities
+# GrAInS utilities
 # -------------------------
 def _build_contrastive_texts(text_prompt: str, taskA: str, taskB: str) -> Tuple[str, str, str]:
     """
@@ -383,11 +364,9 @@ def _fallback_simple_mask(b_input_path: str, save_dir: str, blur_r: int = 51, th
     sal = (blur - gray) / (blur + eps)
     sal = np.clip(sal, 0.0, 1.0)
 
-    sal_img = Image.fromarray(
-        (sal * 255).astype(np.uint8), "L").resize(img.size, Image.Resampling.LANCZOS)
+    sal_img = Image.fromarray((sal * 255).astype(np.uint8), "L").resize(img.size, Image.Resampling.LANCZOS)
     binary = (np.array(sal_img) > (th * 255)).astype(np.uint8) * 255
-    mask_img = Image.fromarray(binary, "L").filter(
-        ImageFilter.GaussianBlur(radius=smooth_r))
+    mask_img = Image.fromarray(binary, "L").filter(ImageFilter.GaussianBlur(radius=smooth_r))
 
     stem = os.path.splitext(os.path.basename(b_input_path))[0]
     out_path = os.path.join(save_dir, f"mask_{stem}.png")
@@ -456,12 +435,10 @@ def generate_mask(
             mask_img = _scores_to_mask(
                 scores, imgB_in.size, threshold_percentile)
             if mask_img is None:
-                logging.warning(
-                    "[Mask][GrAInS] Cannot form a valid patch grid.")
+                logging.warning("[Mask][GrAInS] Cannot form a valid patch grid.")
                 return _fallback_simple_mask(b_abs, TMP_DIR)
 
-            out_path = os.path.join(
-                TMP_DIR, f"mask_grains_{os.path.basename(taskB_input)}.png")
+            out_path = os.path.join(TMP_DIR, f"mask_grains_{os.path.basename(taskB_input)}.png")
             mask_img.save(out_path)
             logging.info(f"[Mask] Saved GrAInS-based mask → {out_path}")
             return out_path
@@ -471,22 +448,6 @@ def generate_mask(
             return _fallback_simple_mask(b_abs, TMP_DIR)
 
     return _fallback_simple_mask(b_abs, TMP_DIR)
-
-
-# -------------------------
-# Anole / Chameleon integration
-# -------------------------
-# Minimal Anole inference wrapper that mirrors anole/inference.py behavior
-try:
-    # chameleon inference wrapper from anole repo
-    from chameleon.inference.chameleon import ChameleonInferenceModel, Options
-except Exception as e:
-    ChameleonInferenceModel = None
-    Options = None
-    logging.warning(
-        "Could not import ChameleonInferenceModel from chameleon.inference.chameleon. "
-        "Make sure anole repo is installed and PYTHONPATH contains it. Import error: %s", e
-    )
 
 
 def save_attr_visuals(attrib_out, processor, imgB_path: str, out_dir: str):
@@ -499,17 +460,14 @@ def save_attr_visuals(attrib_out, processor, imgB_path: str, out_dir: str):
         pos_scores, pos_ids = attrib_out.get("pos", (None, None))
         neg_scores, neg_ids = attrib_out.get("neg", (None, None))
 
-        pos_scores = np.array(
-            pos_scores) if pos_scores is not None else np.array([])
-        neg_scores = np.array(
-            neg_scores) if neg_scores is not None else np.array([])
+        pos_scores = np.array(pos_scores) if pos_scores is not None else np.array([])
+        neg_scores = np.array(neg_scores) if neg_scores is not None else np.array([])
 
         # token strings for barplot
         token_strings_pos = []
         if processor is not None and pos_ids is not None:
             try:
-                token_strings_pos = [processor.tokenizer.decode(
-                    [int(t)]) for t in pos_ids[0]]
+                token_strings_pos = [processor.tokenizer.decode([int(t)]) for t in pos_ids[0]]
             except Exception:
                 token_strings_pos = [str(int(t)) for t in pos_ids[0]]
         else:
@@ -519,27 +477,23 @@ def save_attr_visuals(attrib_out, processor, imgB_path: str, out_dir: str):
             import matplotlib.pyplot as plt
             plt.figure(figsize=(max(6, len(pos_scores)*0.12), 3))
             plt.bar(range(len(pos_scores)), pos_scores)
-            plt.xticks(range(len(pos_scores)), token_strings_pos,
-                       rotation=90, fontsize=6)
+            plt.xticks(range(len(pos_scores)), token_strings_pos, rotation=90, fontsize=6)
             plt.title("Positive token attributions (GRAInS)")
             plt.tight_layout()
-            plt.savefig(os.path.join(
-                out_dir, "attr_positive_bar.png"), dpi=150)
+            plt.savefig(os.path.join(out_dir, "attr_positive_bar.png"), dpi=150)
             plt.close()
 
         if neg_scores.size:
             import matplotlib.pyplot as plt
             plt.figure(figsize=(max(6, len(neg_scores)*0.12), 3))
             plt.bar(range(len(neg_scores)), neg_scores)
-            plt.xticks(range(len(neg_scores)), [
-                       str(int(t)) for t in neg_ids[0]], rotation=90, fontsize=6)
+            plt.xticks(range(len(neg_scores)), [str(int(t)) for t in neg_ids[0]], rotation=90, fontsize=6)
             plt.title("Negative token attributions (GRAInS)")
             plt.tight_layout()
-            plt.savefig(os.path.join(
-                out_dir, "attr_negative_bar.png"), dpi=150)
+            plt.savefig(os.path.join(out_dir, "attr_negative_bar.png"), dpi=150)
             plt.close()
 
-        # produce patch overlay if possible
+        # Produce patch overlay if possible
         if pos_scores.size and imgB_path and len(pos_scores) >= 16:
             img = Image.open(imgB_path).convert("RGB")
             n = pos_scores.shape[0]
@@ -548,20 +502,16 @@ def save_attr_visuals(attrib_out, processor, imgB_path: str, out_dir: str):
             if n2 >= 16:
                 arr = pos_scores[:n2]
                 smin, smax = float(np.min(arr)), float(np.max(arr))
-                norm = (arr - smin) / \
-                    (smax - smin) if smax > smin else np.zeros_like(arr)
+                norm = (arr - smin) / (smax - smin) if smax > smin else np.zeros_like(arr)
                 grid = (norm.reshape(g, g) * 255).astype(np.uint8)
-                heat = Image.fromarray(grid, "L").resize(
-                    img.size, Image.Resampling.LANCZOS)
+                heat = Image.fromarray(grid, "L").resize(img.size, Image.Resampling.LANCZOS)
                 heat_np = np.array(heat).astype(np.float32) / 255.0
                 img_np = np.array(img).astype(np.float32) / 255.0
 
                 overlay = img_np.copy()
-                overlay[..., 0] = np.clip(
-                    overlay[..., 0] + 0.7 * heat_np, 0.0, 1.0)
+                overlay[..., 0] = np.clip(overlay[..., 0] + 0.7 * heat_np, 0.0, 1.0)
                 overlay_img = Image.fromarray((overlay * 255).astype(np.uint8))
-                overlay_img.save(os.path.join(
-                    out_dir, "attr_positive_overlay.png"))
+                overlay_img.save(os.path.join(out_dir, "attr_positive_overlay.png"))
                 heat.save(os.path.join(out_dir, "attr_positive_heatmap.png"))
 
         logging.info("[Thinking] Saved attribution visuals (if any).")
@@ -618,8 +568,7 @@ def evaluate_generated(gt_path, gen_path, taskA_input, taskA_output, taskB_input
     for path in image_list:
         mime_type = "image/png" if path.lower().endswith(".png") else "image/jpeg"
         with open(path, "rb") as f:
-            parts.append(types.Part.from_bytes(
-                data=f.read(), mime_type=mime_type))
+            parts.append(types.Part.from_bytes(data=f.read(), mime_type=mime_type))
 
     # Call Gemini API
     # mllm_model = Gemini()
@@ -692,18 +641,16 @@ def run_evaluation(args):
     eval_data, grouped = generate_eval_dataset()
     final_results = {}
 
-    # Load Qwen VLM (unchanged) for prompt enhancement and for GrAInS attribution
-    qwen_model, qwen_processor = load_vlm_model_and_processor(
-        MODEL_NAME_MAP[QWEN_MODEL])
+    # Load Qwen VLM for prompt enhancement and for GrAInS attribution
+    qwen_model, qwen_processor = load_vlm_model_and_processor(MODEL_NAME_MAP[QWEN_MODEL])
 
-    # If use Qwen for prompt enhancement, load the LoRA/finetuned model (unchanged)
+    # If use Qwen for prompt enhancement, load the LoRA/finetuned model
     if args.use_qwen_for_prompt:
         if os.path.exists(os.path.join(CHECKPOINT_PATH, "adapter_config.json")):
             base_model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
                 BASE_MODEL_PATH, torch_dtype="auto", device_map="auto"
             )
-            prompt_qwen_model = PeftModel.from_pretrained(
-                base_model, CHECKPOINT_PATH)
+            prompt_qwen_model = PeftModel.from_pretrained(base_model, CHECKPOINT_PATH)
             try:
                 prompt_qwen_model = prompt_qwen_model.merge_and_unload()
             except Exception as e:
@@ -749,18 +696,15 @@ def run_evaluation(args):
 
                 a_name = os.path.basename(taskA_input)
                 b_name = os.path.basename(taskB_input)
-                final_path = os.path.join(
-                    pair_res_dir, f"{a_name}_{b_name}_{combo_id}{gt_ext}")
+                final_path = os.path.join(pair_res_dir, f"{a_name}_{b_name}_{combo_id}{gt_ext}")
 
-                # Check if the final image already exists
+                # Step 1: Check if the final image already exists
                 if os.path.exists(final_path):
                     if combo_id in existing_combo_ids:
-                        logging.info(
-                            f"COMPLETE: Skipping combo {combo_id}, image and metrics already exist.")
+                        logging.info(f"COMPLETE: Skipping combo {combo_id}, image and metrics already exist.")
                         continue
                     else:
-                        logging.info(
-                            f"RESUMING: Found image for {combo_id}, calculating and logging metrics...")
+                        logging.info(f"RESUMING: Found image for {combo_id}, calculating and logging metrics...")
                         try:
                             psnr, ssim, viescore = evaluate_generated(taskB_gt_path, final_path,
                                                                       taskA_input, taskA_output,
@@ -776,11 +720,9 @@ def run_evaluation(args):
                             pair_best_scores.append(log_entry)
                             log_file.flush()
                             os.fsync(log_file.fileno())
-                            logging.info(
-                                f"SUCCESS: Logged metrics for existing image {combo_id}.")
+                            logging.info(f"SUCCESS: Logged metrics for existing image {combo_id}.")
                         except Exception as e:
-                            logging.error(
-                                f"FAILURE: Could not evaluate existing image {final_path}. Error: {e}")
+                            logging.error(f"FAILURE: Could not evaluate existing image {final_path}. Error: {e}")
                         continue
 
                 logging.info(f"STARTING: Processing new combo {combo_id}.")
@@ -813,24 +755,21 @@ def run_evaluation(args):
                         attribution_prompt, pos_resp, neg_resp = _build_contrastive_texts(
                             text_prompt, taskA, taskB)
 
-                        logging.info(
-                            "[GrAInS] Computing token attributions (contrastive)...")
+                        logging.info("[GrAInS] Computing token attributions (contrastive)...")
                         attrib = get_token_attributions_contrastive(
                             model=qwen_model,
                             processor=qwen_processor,
-                            image=Image.open(os.path.join(
-                                DATA_TASKS_DIR, taskB_input)).convert("RGB"),
+                            image=Image.open(os.path.join(DATA_TASKS_DIR, taskB_input)).convert("RGB"),
                             prompt=attribution_prompt,
                             pos_response=pos_resp,
                             neg_response=neg_resp,
                             method="integrated_gradients"
                         )
                         # Save visualizations
-                        save_attr_visuals(attrib, qwen_processor, os.path.join(
-                            DATA_TASKS_DIR, taskB_input), attrib_vis_dir)
+                        save_attr_visuals(attrib, qwen_processor,
+                                          os.path.join(DATA_TASKS_DIR, taskB_input), attrib_vis_dir)
                     else:
-                        logging.info(
-                            "[GrAInS] Qwen model/processor not provided, skipping attribution visualization.")
+                        logging.info("[GrAInS] Qwen model/processor not provided, skipping attribution visualization.")
                 except Exception as e:
                     logging.warning(f"[GrAInS] Attribution computation failed: {e}")
 
@@ -856,10 +795,10 @@ def run_evaluation(args):
                             json.dump(temp_input_data, f)
                         
                         # Run the subprocess in the anole environment
-                        logging.info(f"Attempt {i+1}: Calling anole_gen.py in anole env...")
+                        logging.info(f"Attempt {i+1}: Calling anole.py in anole env...")
                         cmd = [
                             "conda", "run", "-n", "anole",
-                            "python", "anole_gen.py",
+                            "python", "anole.py",
                             "--input-json", temp_input_json,
                             "--output-json", temp_output_json,
                             "--model-path", args.model_path,
@@ -877,12 +816,12 @@ def run_evaluation(args):
                             gen_image_path = output_data.get("generated_image_path")
                         
                         if not gen_image_path:
-                             logging.warning(f"Attempt {i+1}: anole_gen.py ran but did not return an image path.")
+                             logging.warning(f"Attempt {i+1}: anole.py ran but did not return an image path.")
                              logging.debug(f"conda run stdout:\n{result.stdout}")
                              logging.debug(f"conda run stderr:\n{result.stderr}")
 
                     except subprocess.CalledProcessError as e:
-                        logging.warning(f"Attempt {i+1}: anole_gen.py subprocess FAILED.")
+                        logging.warning(f"Attempt {i+1}: anole.py subprocess FAILED.")
                         logging.warning(f"Command: {' '.join(cmd)}")
                         logging.warning(f"Return Code: {e.returncode}")
                         logging.warning(f"STDOUT:\n{e.stdout}")
@@ -891,24 +830,20 @@ def run_evaluation(args):
                         logging.warning(f"Attempt {i+1}: Main script failed during subprocess call: {e}")
 
                     if gen_image_path:
-                        logging.info(
-                            f"Attempt {i+1}: Successfully received image from Anole subprocess: {gen_image_path}")
+                        logging.info(f"Attempt {i+1}: Successfully received image from Anole subprocess: {gen_image_path}")
                         temp_path = os.path.join(combo_tmp_dir,
                                                     f"gen_{i}{gt_ext}")
                         # Copy from the path returned by the subprocess
                         shutil.copy(gen_image_path, temp_path) 
                         curr_psnr, _ = eval_quality(taskB_gt_path,
                                                     temp_path)
-                        logging.info(
-                            f"Attempt {i+1}: Saved to {temp_path}, PSNR: {curr_psnr:.2f}")
+                        logging.info(f"Attempt {i+1}: Saved to {temp_path}, PSNR: {curr_psnr:.2f}")
                         if curr_psnr > best_psnr:
                             best_psnr = curr_psnr
                             best_gen_path = temp_path
-                            logging.info(
-                                f"Attempt {i+1}: New best image found!")
+                            logging.info(f"Attempt {i+1}: New best image found!")
                     else:
-                        logging.warning(
-                            f"Attempt {i+1}: Anole subprocess call returned NO image.")
+                        logging.warning(f"Attempt {i+1}: Anole subprocess call returned NO image.")
 
                 if best_gen_path:
                     shutil.move(best_gen_path, final_path)
@@ -928,8 +863,7 @@ def run_evaluation(args):
                     pair_best_scores.append(log_entry)
                     log_file.flush()
                     os.fsync(log_file.fileno())
-                    logging.info(
-                        f"Combo {combo_id}: PSNR={psnr:.2f}, SSIM={ssim:.4f}, VIEScore={viescore:.2f}")
+                    logging.info(f"Combo {combo_id}: PSNR={psnr:.2f}, SSIM={ssim:.4f}, VIEScore={viescore:.2f}")
 
                     shutil.rmtree(combo_tmp_dir, ignore_errors=True)
 

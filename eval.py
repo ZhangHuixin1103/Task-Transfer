@@ -761,7 +761,7 @@ def run_evaluation(args):
                 b_name = os.path.basename(taskB_input)
                 final_path = os.path.join(pair_res_dir, f"{a_name}_{b_name}_{combo_id}{gt_ext}")
 
-                # Check if the final image already exists
+                # Step 1: Check if the final image already exists
                 if os.path.exists(final_path):
                     # If the image exists, check if its metrics are already logged
                     if combo_id in existing_combo_ids:
@@ -893,6 +893,7 @@ if __name__ == "__main__":
                         default=False, help="Use Qwen for generating text prompt")
     parser.add_argument("--fixed_prompt", type=str, default=None,
                         # This is a visual in-context learning task. The first two images are an input and output of Task A: [TASK_A_DEGRADATION]. The third image is the input for Task B: [TASK_B_DEGRADATION]. The goal is to perform Task B on the third image and generate output image, learning from Task A.
+                        # This is a visual in-context learning task. The first two images are an input and output of Task A. The third image is the input for Task B. The goal is to perform Task B on the third image and generate output image, learning from Task A.
                         help="Fixed text prompt if not using Qwen")
     parser.add_argument("--use_mask", action="store_true",
                         default=False, help="Use mask for generation")

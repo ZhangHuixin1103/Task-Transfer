@@ -9,8 +9,7 @@ import torch
 from PIL import Image
 
 # -------------------------
-# Anole / Chameleon Imports
-# (These are the environment-specific parts)
+# Anole / Chameleon imports
 # -------------------------
 
 # Add Anole-specific transformers path
@@ -30,7 +29,7 @@ except Exception as e:
         "Make sure this script is run in the correct conda env ('anole_env') "
         "and the path '%s' is correct. Import error: %s", anole_transformers, e
     )
-    sys.exit(1) # Exit if we can't import
+    sys.exit(1)
 
 from transformers import StoppingCriteria, StoppingCriteriaList
 
@@ -39,7 +38,6 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s - %(message)s")
 
 # -------------------------
 # Anole / Chameleon integration
-# (Copied directly from mask_pro.py)
 # -------------------------
 
 class StopAtSpecificTokenCriteria(StoppingCriteria):
@@ -103,7 +101,6 @@ class InterleavedGenerator:
     def _prepare_cfg_batch(self, token_ids, cfg_type="normal"):
         """
         Prepare batch for CFG by creating multiple conditions
-        (Copied from mask_pro.py)
         """
         # Negative prompt for image generation
         negative_prompt = "text in the image, text, lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry."
@@ -113,7 +110,7 @@ class InterleavedGenerator:
         batch_token_ids = []
 
         if cfg_type == "normal":
-            # For normal CFG (3 conditions) - simpler version without original prompt
+            # For normal CFG (3 conditions)
             # 1. Full condition
             batch_token_ids.append(token_ids)
 
@@ -121,8 +118,7 @@ class InterleavedGenerator:
             batch_token_ids.append([self.boi_token_id])
 
             # 3. Image-conditioned tokens only
-            image_only_tokens = [
-                tok for tok in token_ids if tok in self.image_conditioned_allowed]
+            image_only_tokens = [tok for tok in token_ids if tok in self.image_conditioned_allowed]
             if not image_only_tokens or image_only_tokens[-1] != self.boi_token_id:
                 image_only_tokens.append(self.boi_token_id)
             batch_token_ids.append(image_only_tokens)
@@ -141,8 +137,7 @@ class InterleavedGenerator:
             # 1. Full condition
             batch_token_ids.append(token_ids)
             # 2. Image-conditioned tokens only
-            image_only_tokens = [
-                tok for tok in token_ids if tok in self.image_conditioned_allowed]
+            image_only_tokens = [tok for tok in token_ids if tok in self.image_conditioned_allowed]
             if not image_only_tokens or image_only_tokens[-1] != self.boi_token_id:
                 image_only_tokens.append(self.boi_token_id)
             batch_token_ids.append(image_only_tokens)
@@ -174,10 +169,8 @@ class InterleavedGenerator:
                 attention_masks.append([1] * len(seq))
 
         # Convert to tensors
-        input_ids = torch.tensor(
-            batch_token_ids, dtype=torch.long, device=self.device)
-        attention_mask = torch.tensor(
-            attention_masks, dtype=torch.long, device=self.device)
+        input_ids = torch.tensor(batch_token_ids, dtype=torch.long, device=self.device)
+        attention_mask = torch.tensor(attention_masks, dtype=torch.long, device=self.device)
 
         return input_ids, attention_mask
 
@@ -194,7 +187,6 @@ class InterleavedGenerator:
     ):
         """
         Generate interleaved text and images by alternating between modes
-        (Copied from mask_pro.py)
         """
         # Store original prompt tokens for CFG
         self.original_prompt_tokens = original_prompt_tokens if cfg_type == "full" else None
@@ -211,10 +203,8 @@ class InterleavedGenerator:
             current_input_ids = torch.tensor([all_tokens], device=self.device)
 
             # Setup stopping criteria for BOI token
-            stop_at_boi = StopAtSpecificTokenCriteria(
-                self.boi_token_id, self.device)
-            stop_at_eos = StopAtSpecificTokenCriteria(
-                self.eos_token_id, self.device)
+            stop_at_boi = StopAtSpecificTokenCriteria(self.boi_token_id, self.device)
+            stop_at_eos = StopAtSpecificTokenCriteria(self.eos_token_id, self.device)
 
             # Disable CFG for text generation
             self.model.cfg_config = "no"
@@ -228,8 +218,7 @@ class InterleavedGenerator:
                     temperature=temperature,
                     top_p=top_p,
                     do_sample=True,
-                    stopping_criteria=StoppingCriteriaList(
-                        [stop_at_boi, stop_at_eos]),
+                    stopping_criteria=StoppingCriteriaList([stop_at_boi, stop_at_eos]),
                     multimodal_generation_mode="interleaved-text-image",
                     pad_token_id=self.pad_token_id
                 )
@@ -247,14 +236,14 @@ class InterleavedGenerator:
             if all_tokens[-1] == self.boi_token_id:
                 print(f"Generating image {num_images_generated + 1}...")
 
-                # Phase 2: Generate image with CFG
+                # Generate image with CFG
                 actual_cfg_type = cfg_type
                 if mode == "object_thoughts":
                     if num_images_generated < 2:
                         actual_cfg_type = "obj"
                     else:
                         actual_cfg_type = "full"
-                
+
                 self.model.cfg_config = actual_cfg_type
 
                 # Prepare CFG batch
@@ -273,8 +262,7 @@ class InterleavedGenerator:
                 )
 
                 # Extract only the first condition's output
-                new_image_tokens = image_output[0][len(
-                    cfg_input_ids[0]):].tolist()[:1025]
+                new_image_tokens = image_output[0][len(cfg_input_ids[0]):].tolist()[:1025]
                 all_tokens.extend(new_image_tokens)
                 num_images_generated += 1
                 self.model.cfg_config = "no"
@@ -284,8 +272,8 @@ class InterleavedGenerator:
             "num_images": num_images_generated,
             "total_length": len(all_tokens)
         }
-    
-    # Helper to decode image (also needed)
+
+    # Helper to decode image
     def split_token_sequence(self, tokens_tensor, boi_token_id, eoi_token_id):
         """Helper to split tokens into text/image segments."""
         tokens = tokens_tensor[0].tolist()
@@ -310,8 +298,8 @@ class InterleavedGenerator:
                     current_segment.append(token)
 
         if current_segment and not is_image_seg:
-             segments.append(("text_seg", torch.tensor([current_segment], device=self.device)))
-        
+            segments.append(("text_seg", torch.tensor([current_segment], device=self.device)))
+
         return segments
 
 
@@ -324,7 +312,6 @@ def generate_image_with_anole(
     combo_tmp_dir: str,
     use_mask: bool = False,
     mask_path: Optional[str] = None,
-    # Note: qwen_model and qwen_processor are REMOVED from this function
 ):
     """
     Generate image for Task B using Anole generator.
@@ -341,12 +328,8 @@ def generate_image_with_anole(
               Image.open(taskA_output_path).convert("RGB"),
               Image.open(taskB_input_path).convert("RGB")]
 
-    # TODO: Add mask logic here if Anole/Chameleon supports it.
-    # The original code did not seem to pass the 'mask_path' to Anole,
-    # so we will keep that behavior.
     if use_mask and mask_path:
-        logging.info(f"[Anole Gen] Mask is requested, but Anole integration "
-                     f"in this script does not currently use it. "
+        logging.info(f"[Anole Gen] Mask is requested, but Anole integration does not currently use it. "
                      f"Mask path: {mask_path}")
 
     inputs = generator.processor(generation_prompt, images=images, padding=False, return_tensors="pt",
@@ -363,11 +346,7 @@ def generate_image_with_anole(
     prompt_tokens = input_ids[0].tolist() + [generator.boi_token_id]
 
     original_prompt = f"Generate the output image for Task B based on the example."
-    original_tokens = generator.processor.tokenizer.encode(
-        original_prompt, add_special_tokens=False)
-
-    # The entire GrAInS attribution/visualization block is REMOVED here.
-    # It now lives in the main mask_pro.py script.
+    original_tokens = generator.processor.tokenizer.encode(original_prompt, add_special_tokens=False)
 
     # Generate with Anole
     logging.info("[Anole Gen] Starting Anole image generation...")
@@ -383,8 +362,7 @@ def generate_image_with_anole(
 
     # Extract the generated image
     tokens_tensor = torch.tensor([result["tokens"]], device=generator.device)
-    segments = generator.split_token_sequence(
-        tokens_tensor, generator.boi_token_id, generator.eoi_token_id)
+    segments = generator.split_token_sequence(tokens_tensor, generator.boi_token_id, generator.eoi_token_id)
 
     generated_image = None
     for seg_type, seg_tokens in segments[::-1]:
@@ -400,6 +378,7 @@ def generate_image_with_anole(
     else:
         logging.warning("[Anole Gen] No generated image found in segments.")
         return None
+
 
 # -------------------------
 # Main execution
@@ -417,26 +396,26 @@ if __name__ == "__main__":
     # Add data_tasks_dir to resolve relative paths
     parser.add_argument("--data-tasks-dir", type=str, required=True,
                         help="Base directory for task data (e.g., 'data/tasks')")
-    
+
     args = parser.parse_args()
 
     # Load inputs from the JSON file
     try:
         with open(args.input_json, 'r') as f:
             inputs = json.load(f)
-        
+
         taskA_input = inputs['taskA_input']
         taskA_output = inputs['taskA_output']
         taskB_input = inputs['taskB_input']
         text_prompt = inputs['text_prompt']
         use_mask = inputs['use_mask']
         mask_path = inputs['mask_path']
-        
+
         # Resolve relative paths to absolute paths
         taskA_input_path = os.path.join(args.data_tasks_dir, taskA_input)
         taskA_output_path = os.path.join(args.data_tasks_dir, taskA_output)
         taskB_input_path = os.path.join(args.data_tasks_dir, taskB_input)
-        
+
     except Exception as e:
         logging.critical(f"Failed to load or parse {args.input_json}: {e}")
         sys.exit(1)
@@ -459,13 +438,13 @@ if __name__ == "__main__":
             use_mask=use_mask,
             mask_path=mask_path
         )
-        
+
         output_data["generated_image_path"] = gen_path
 
     except Exception as e:
         logging.error(f"Anole generation failed: {e}", exc_info=True)
         # We still write to the output file so the main process doesn't hang
-        
+
     finally:
         # Write the output path (or None on failure) to the output JSON
         try:
