@@ -672,7 +672,7 @@ def evaluate_generated(gt_path, gen_path, taskA_input, taskA_output, taskB_input
             # result = mllm_model.get_parsed_output(prompt)
             # print("Raw result from Gemini:\n", result)
             resp = client.models.generate_content(
-                model="gemini-2.5-flash",
+                model="gemini-2.5-flash-lite",
                 contents=parts,
                 config=types.GenerateContentConfig(
                     temperature=0.1,
