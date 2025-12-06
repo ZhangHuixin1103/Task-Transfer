@@ -52,7 +52,7 @@ CHECKPOINT_PATH = "Qwen2.5-VL/qwen-vl-finetune/output/checkpoint-latest"
 
 GEMINI_API_KEY = "sk-Uqq0JFYc56oSgTFmrnGRzZgbtV4NBoNJKm18hvnpQKoFHjJF"
 # GEMINI_API_KEY = "sk-2LE9SvYG170QGDDX1ajIUlsuVxt1bqY9nY92BZAKvSZlPWFL"
-GEMINI_MODEL = "gemini-2.5-flash-preview-image-generation"
+GEMINI_MODEL = "gemini-2.5-flash-image-preview"
 BASE_URL = "https://globalai.vip"
 # BASE_URL = "http://82.29.71.210:5300"
 API_KEY_HEADER = "api-key"
