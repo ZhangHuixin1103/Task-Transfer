@@ -41,8 +41,8 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s - %(message)s")
 DATA_TASKS_DIR = "data/tasks"
 TRAIN_DATASET_JSON = "data/dataset/train_dataset.json"
 EVAL_DATASET_JSON = "data/dataset/eval_dataset.json"
-OUTPUT_DIR = "data/output"
-TMP_DIR = "data/tmp"
+OUTPUT_DIR = "data/output/output_qwen1"
+TMP_DIR = "data/tmp/tmp_qwen1"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 os.makedirs(TMP_DIR, exist_ok=True)
 
@@ -50,9 +50,9 @@ BASE_MODEL_PATH = "Qwen/Qwen2.5-VL-3B-Instruct"
 QWEN_MODEL = "qwen-2.5-vl-3b-instruct"
 CHECKPOINT_PATH = "Qwen2.5-VL/qwen-vl-finetune/output/checkpoint-latest"
 
-# GEMINI_API_KEY = "sk-Uqq0JFYc56oSgTFmrnGRzZgbtV4NBoNJKm18hvnpQKoFHjJF"
-GEMINI_API_KEY = "sk-2LE9SvYG170QGDDX1ajIUlsuVxt1bqY9nY92BZAKvSZlPWFL"
-GEMINI_MODEL = "gemini-2.0-flash-preview-image-generation"
+GEMINI_API_KEY = "sk-Uqq0JFYc56oSgTFmrnGRzZgbtV4NBoNJKm18hvnpQKoFHjJF"
+# GEMINI_API_KEY = "sk-2LE9SvYG170QGDDX1ajIUlsuVxt1bqY9nY92BZAKvSZlPWFL"
+GEMINI_MODEL = "gemini-2.5-flash-preview-image-generation"
 BASE_URL = "https://globalai.vip"
 # BASE_URL = "http://82.29.71.210:5300"
 API_KEY_HEADER = "api-key"
@@ -269,8 +269,13 @@ def generate_text_prompt(taskA_input, taskA_output, taskB_input, model, processo
         clean_up_tokenization_spaces=True,
     )
 
-    print(f"Generated prompt:\n{output_text[0] if output_text else ''}")
-    return output_text[0] if output_text else ""
+    # Choose to add this to Qwen prompt or not
+    instruct_text = ""
+    # instruct_text = "This is a visual in-context learning task. The first two images are an input and output of Task A. The third image is the input for Task B. The goal is to perform Task B on the third image and generate output image, learning from Task A. Only modify the flaws in the third image; do not arbitrarily change the image's color tone (unless it's a task to colorize a black and white image) or the layout of the image content.\n"
+    Qwen_text = instruct_text + output_text[0] if output_text else instruct_text
+
+    print(f"Generated prompt:\n{Qwen_text if output_text else instruct_text}")
+    return Qwen_text if output_text else instruct_text
 
 
 def _fallback_simple_mask(b_input_path: str, save_dir: str, blur_r: int = 51, th: float = 0.30, smooth_r: int = 9) -> str:
@@ -652,7 +657,7 @@ def evaluate_generated(gt_path, gen_path, taskA_input, taskA_output, taskB_input
             # result = mllm_model.get_parsed_output(prompt)
             # print("Raw result from Gemini:\n", result)
             resp = client.models.generate_content(
-                model="gemini-2.0-flash",
+                model="gemini-2.5-flash",
                 contents=parts,
                 config=types.GenerateContentConfig(
                     temperature=0.1,
