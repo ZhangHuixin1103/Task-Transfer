@@ -52,7 +52,7 @@ CHECKPOINT_PATH = "Qwen2.5-VL/qwen-vl-finetune/output/checkpoint-latest"
 
 GEMINI_API_KEY = "sk-Uqq0JFYc56oSgTFmrnGRzZgbtV4NBoNJKm18hvnpQKoFHjJF"
 # GEMINI_API_KEY = "sk-2LE9SvYG170QGDDX1ajIUlsuVxt1bqY9nY92BZAKvSZlPWFL"
-GEMINI_MODEL = "gemini-2.5-flash-image-preview"
+GEMINI_MODEL = "gemini-2.5-flash-image-preview:generateContent"
 BASE_URL = "https://globalai.vip"
 # BASE_URL = "http://82.29.71.210:5300"
 API_KEY_HEADER = "api-key"
@@ -524,8 +524,23 @@ def _extract_image_from_parts(parts):
                 except Exception as e:
                     # If decoding or opening fails, log it and continue
                     logging.warning(f"Could not decode or open base64 image: {e}")
-                    pass
-    
+
+            url_match = re.search(r"!\[.*?\]\((https?://[^\s)]+)\)", p.text)
+            if url_match:
+                image_url = url_match.group(1)
+                logging.info(f"Found Markdown Image URL: {image_url}")
+                try:
+                    import requests
+                    import io
+                    resp = requests.get(image_url, timeout=10)
+                    if resp.status_code == 200:
+                        image = Image.open(io.BytesIO(resp.content)).convert("RGB")
+                        return image
+                    else:
+                        logging.warning(f"Could not download the image URL, code={resp.status_code}")
+                except Exception as e:
+                    logging.warning(f"Could not download image from URL: {e}")
+
     # If no image is found in any part, return None
     return None
 
