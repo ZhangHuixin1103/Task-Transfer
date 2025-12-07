@@ -270,7 +270,7 @@ def generate_text_prompt(taskA_input, taskA_output, taskB_input, model, processo
     )
 
     # Choose to add this to Qwen prompt or not
-    instruct_text = ""
+    instruct_text = "This is a visual in-context learning task. The first two images are an input and output of Task A. The third image is the input for Task B. The goal is to perform Task B on the third image and generate output image, learning from Task A."
     # instruct_text = "This is a visual in-context learning task. The first two images are an input and output of Task A. The third image is the input for Task B. The goal is to perform Task B on the third image and generate output image, learning from Task A. Only modify the flaws in the third image; do not arbitrarily change the image's color tone (unless it's a task to colorize a black and white image) or the layout of the image content.\n"
     Qwen_text = instruct_text + output_text[0] if output_text else instruct_text
 
