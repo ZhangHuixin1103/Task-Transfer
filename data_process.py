@@ -7,15 +7,13 @@ OUTPUT_FILE = "data/dataset/converted_dataset.json"
 # The core instruction prompt for the user's message.
 # Using a constant for this makes the code cleaner and easier to modify.
 INSTRUCTION_PROMPT = (
-    "You are an expert in analyzing image processing tasks. "
-    "Below are two vision tasks, A and B.\n"
-    "The Picture 1 and 2 belong to Task A, 1 is input and 2 is output; "
-    "the third image Picture 3 is input of Task B.\n"
-    "Please analyze and describe the key differences between the two tasks. "
-    "Focus on the target goal, the type of degradation in the input, "
-    "and the visual changes from input to output.\n"
-    "I know you can't see output of task B, but you can guess what task it is "
-    "based on shortcoming of input."
+    "You are an expert in analyzing image processing tasks. Below are two vision tasks, A and B.\n"
+    "The Picture 1 and 2 belong to Task A, 1 is input and 2 is output; the third image Picture 3 is input of Task B.\n"
+    "Please simply describe the input images, focus on the visual changes from input to output, and analyze the key differences between them.\n"
+    "Don't give me long descriptions or explanations; keep it concise and to the point.\n"
+    "Don't tell me exactly what the tasks are (e.g., denoising, colorization, or shadow removal); instead, use implicit words and highlight how they differ in their objectives and effects.\n"
+    "Fit your answer into 3 sentences: 1) input image descriptions (what need to be done); 2) visual changes (what task A and B did); 3) differences of task A and B.\n"
+    "I know you can't see output of task B, but you can guess what task it is based on shortcoming of input."
 )
 
 

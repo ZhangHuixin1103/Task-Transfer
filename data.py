@@ -258,7 +258,7 @@ def main():
     args = parser.parse_args()
 
     # Step 1: Load existing data to determine the state.
-    output_json_path = OUTPUT_DIR / "train_dataset.json"
+    output_json_path = OUTPUT_DIR / "train_dataset_test.json"
     processed_data = load_processed_data(output_json_path)
 
     all_tasks = [d for d in DATA_ROOT.iterdir() if d.is_dir()]
@@ -368,9 +368,12 @@ def main():
     with open(output_json_path, 'a', encoding='utf-8') as f:
         for (a_in, a_out, b_in, b_out) in tqdm(combos_to_process, desc="Generating Descriptions"):
             prompt = (
-                "You are an expert in analyzing image processing tasks. Below are two tasks, A and B, each with an input and an output image."
-                "The first two images belong to Task A, and the next two images belong to Task B."
-                "Please analyze and describe the key differences between them. Focus on the target goal, the type of degradation in the input, and the visual changes from input to output."
+                "You are an expert in analyzing image processing tasks. Below are two tasks, A and B, each with an input and an output image.\n"
+                "The first two images belong to Task A, and the next two images belong to Task B.\n"
+                "Please simply describe the input images, focus on the visual changes from input to output, and analyze the key differences between them.\n"
+                "Don't give me long descriptions or explanations; keep it concise and to the point.\n"
+                "Don't tell me exactly what the tasks are (e.g., denoising, colorization, or shadow removal); instead, use implicit words and highlight how they differ in their objectives and effects.\n"
+                "Fit your answer into 3 sentences: 1) input image descriptions (what need to be done); 2) visual changes (what task A and B did); 3) differences of task A and B."
             )
             description = query_local_vlm([a_in, a_out, b_in, b_out], prompt)
 

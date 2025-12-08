@@ -226,7 +226,7 @@ def generate_text_prompt(taskA_input, taskA_output, taskB_input, model, processo
                 },
                 {
                     "type": "text",
-                    "text": "You are an expert in analyzing image processing tasks. Below are two vision tasks, A and B.\nThe Picture 1 and 2 belong to Task A, 1 is input and 2 is output; the third image Picture 3 is input of Task B.\nPlease analyze and describe the key differences between the two tasks shortly. Focus on the degradation to be removed, for example: 'Remove rain streaks', 'Enhance low light areas', or 'Remove shadows'.\nI know you can't see output of task B, but you can guess what task it is based on shortcoming of input.",
+                    "text": "You are an expert in analyzing image processing tasks. Below are two vision tasks, A and B.\nThe Picture 1 and 2 belong to Task A, 1 is input and 2 is output; the third image Picture 3 is input of Task B.\nPlease simply describe the input images, focus on the visual changes from input to output, and analyze the key differences between them.\nDon't give me long descriptions or explanations; keep it concise and to the point.\nDon't tell me exactly what the tasks are (e.g., denoising, colorization, or shadow removal); instead, use implicit words and highlight how they differ in their objectives and effects.\nFit your answer into 3 sentences: 1) input image descriptions (what need to be done); 2) visual changes (what task A and B did); 3) differences of task A and B.\nI know you can't see output of task B, but you can guess what task it is based on the input.",
                 },
             ],
         },
