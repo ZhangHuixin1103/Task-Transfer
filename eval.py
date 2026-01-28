@@ -43,8 +43,6 @@ TRAIN_DATASET_JSON = "data/dataset/train_dataset.json"
 EVAL_DATASET_JSON = "data/dataset/eval_dataset.json"
 OUTPUT_DIR = "data/output/output_qwen"
 TMP_DIR = "data/tmp/tmp_qwen"
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-os.makedirs(TMP_DIR, exist_ok=True)
 
 BASE_MODEL_PATH = "Qwen/Qwen3-VL-4B-Instruct"
 QWEN_MODEL = "qwen-3-vl-4b-instruct"
@@ -623,7 +621,7 @@ def eval_quality(gt_path, gen_path):
     return psnr, ssim
 
 
-def evaluate_generated(gt_path, gen_path, taskA_input, taskA_output, taskB_input, taskA, taskB):
+def evaluate_generated(gt_path, gen_path, taskA_input, taskA_output, taskB_input, taskA, taskB, tmp_dir=None):
     """Evaluate PSNR, SSIM, and VIEScore."""
 
     # PSNR / SSIM
@@ -663,9 +661,14 @@ def evaluate_generated(gt_path, gen_path, taskA_input, taskA_output, taskB_input
     # Adjusted to run evaluation
     viescore = 0.0
     is_verified = False
-    tries, max_tries = 0, 2
-    tmp_file_path = os.path.join(TMP_DIR, "viescore_log.json")
+    tries, max_tries = 0, 3
+    tmp_file_path = None
     uid = hashed_id(taskA_input, taskB_input, gen_path)
+
+    if tmp_dir is not None:
+        os.makedirs(OUTPUT_DIR, exist_ok=True)
+        os.makedirs(TMP_DIR, exist_ok=True)
+        tmp_file_path = os.path.join(tmp_dir, "viescore_log.json")
 
     while not is_verified and tries < max_tries:
         try:
@@ -682,30 +685,43 @@ def evaluate_generated(gt_path, gen_path, taskA_input, taskA_output, taskB_input
             result_text = resp.candidates[0].content.parts[0].text
             print("Raw result from Gemini:\n", result_text)
 
-            is_verified = write_entry_to_json_file(
-                input_string=result_text,
-                uid=uid,
-                prompt_input=viescore_prompt,
-                vision_input=image_list,
-                output_file_name=tmp_file_path,
-                give_up_parsing=False
-            )
+            if tmp_file_path:
+                is_verified = write_entry_to_json_file(
+                    input_string=result_text,
+                    uid=uid,
+                    prompt_input=viescore_prompt,
+                    vision_input=image_list,
+                    output_file_name=tmp_file_path,
+                    give_up_parsing=False
+                )
 
-            if is_verified is True:
-                with open(tmp_file_path, "r") as f:
-                    data = json.load(f)
-                scores = data[uid].get("score", [])
-                if len(scores) == 2:
-                    sc, pq = scores
-                    viescore = (sc + pq) / 2
-                elif len(scores) == 1:
-                    viescore = scores[0]
-                break
-            elif is_verified == "rate_limit_exceeded":
-                logging.warning("Gemini rate limit exceeded.")
-                break
+                if is_verified is True:
+                    with open(tmp_file_path, "r") as f:
+                        data = json.load(f)
+                    scores = data[uid].get("score", [])
+                    if len(scores) == 2:
+                        sc, pq = scores
+                        viescore = (sc + pq) / 2
+                    elif len(scores) == 1:
+                        viescore = scores[0]
+                    break
+                elif is_verified == "rate_limit_exceeded":
+                    logging.warning("Gemini rate limit exceeded.")
+                    break
+                else:
+                    logging.warning(f"Parsing failed on try {tries+1}")
+
             else:
-                logging.warning(f"Parsing failed on try {tries+1}")
+                try:
+                    match = re.search(r'\{.*\}', result_text, re.DOTALL)
+                    if match:
+                        res_json = json.loads(match.group())
+                        scores = res_json.get("score", [])
+                        if len(scores) >= 1:
+                            viescore = sum(scores)/len(scores)
+                            is_verified = True
+                except:
+                    logging.warning("No log file requested and manual JSON parse failed.")
 
         except Exception as e:
             logging.warning(f"Error during Gemini evaluation: {e}")
@@ -791,7 +807,8 @@ def run_evaluation(args):
                         try:
                             psnr, ssim, viescore = evaluate_generated(taskB_gt_path, final_path,
                                                                       taskA_input, taskA_output,
-                                                                      taskB_input, taskA, taskB)
+                                                                      taskB_input, taskA, taskB,
+                                                                      TMP_DIR)
                             log_entry = {
                                 "combo_id": combo_id,
                                 "final_image": final_path,
@@ -861,7 +878,8 @@ def run_evaluation(args):
                     # Step 5: Evaluate best
                     psnr, ssim, viescore = evaluate_generated(taskB_gt_path, final_path,
                                                               taskA_input, taskA_output,
-                                                              taskB_input, taskA, taskB)
+                                                              taskB_input, taskA, taskB,
+                                                              TMP_DIR)
                     log_entry = {
                         "combo_id": combo_id,
                         "final_image": final_path,

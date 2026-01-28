@@ -1,0 +1,3 @@
+META:
+  - path: 'train_data_1.json'
+  - path: 'train_data_2.json'
