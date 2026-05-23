@@ -1,19 +1,18 @@
 import argparse
+import base64
 import json
 import logging
 import os
+import shutil
 import sys
+from io import BytesIO
+from urllib.parse import urlparse
 
 import numpy as np
-import torch
-from diffusers import QwenImageEditPlusPipeline
+import requests
 from PIL import Image
 
-from eval import hashed_id, generate_text_prompt, evaluate_generated
-
-firered_root = os.path.join(os.getcwd(), "model/FireRed-Image-Edit")
-if firered_root not in sys.path:
-    sys.path.append(firered_root)
+from eval import hashed_id, generate_text_prompt, evaluate_generated, eval_quality
 
 viescore_path = '/data1/tzz/huixin/Task-Transfer/VIEScore'
 if viescore_path not in sys.path:
@@ -21,74 +20,153 @@ if viescore_path not in sys.path:
 
 DATA_TASKS_DIR = "data/tasks"
 EVAL_DATASET_JSON = "data/dataset/eval_dataset.json"
-OUTPUT_DIR = "data/output/baseline/firered/output_qwen"
-FIRERED_MODEL_PATH = "FireRedTeam/FireRed-Image-Edit-1.1"
+OUTPUT_DIR = "data/output/baseline/seedream/output_qwen"
+TMP_DIR = "data/tmp/tmp_seedream"
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
+os.makedirs(TMP_DIR, exist_ok=True)
 
 BASE_MODEL_PATH = "Qwen/Qwen3-VL-4B-Instruct"
 CHECKPOINT_PATH = "Qwen3-VL/qwen-vl-finetune/output/checkpoint-4875"
 
+FAL_KEY = "3491e154-905d-4634-a722-a67d3697d5bd:8cc3acf45e8187b00f8af4fae0dbe0ac"
+UPLOAD_CACHE_JSON = "data/output/baseline/seedream/fal_upload_cache.json"
+SEEDREAM_ENDPOINT = "fal-ai/bytedance/seedream/v4/edit"
+
 logging.basicConfig(level=logging.INFO, format="%(levelname)s - %(message)s")
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 
-def load_firered_pipeline(model_path, optimized=False):
-    logging.info(f"Loading FireRed-Image-Edit from {model_path}...")
+def on_queue_update(update):
+    import fal_client
 
-    if optimized:
+    if isinstance(update, fal_client.InProgress):
+        for log in update.logs or []:
+            print(log["message"])
+
+
+def load_upload_cache():
+    if os.path.exists(UPLOAD_CACHE_JSON):
         try:
-            from utils.fast_pipeline import load_fast_pipeline
-        except Exception as e:
-            raise ImportError(
-                "Failed to import FireRed optimized pipeline. "
-                "Please run from a workspace that has model/FireRed-Image-Edit "
-                "or install the official FireRed repository."
-            ) from e
+            with open(UPLOAD_CACHE_JSON, 'r') as f:
+                return json.load(f)
+        except Exception:
+            return {}
+    return {}
 
-        pipe = load_fast_pipeline(model_path)
+
+def save_upload_cache(cache):
+    with open(UPLOAD_CACHE_JSON, 'w') as f:
+        json.dump(cache, f, indent=4)
+
+
+def upload_image_to_fal(path, cache):
+    import fal_client
+
+    abs_path = os.path.abspath(path)
+    stat = os.stat(abs_path)
+    cache_key = f"{abs_path}|{stat.st_size}|{int(stat.st_mtime)}"
+
+    if cache_key in cache:
+        return cache[cache_key]
+
+    logging.info(f"Uploading to fal CDN: {abs_path}")
+    url = fal_client.upload_file(abs_path)
+    cache[cache_key] = url
+    save_upload_cache(cache)
+    return url
+
+
+def _decode_data_uri(data_uri):
+    header, encoded = data_uri.split(",", 1)
+    raw = base64.b64decode(encoded)
+    return Image.open(BytesIO(raw)).convert("RGB")
+
+
+def download_seedream_image(image_obj):
+    if isinstance(image_obj, str):
+        url = image_obj
     else:
-        pipe = QwenImageEditPlusPipeline.from_pretrained(
-            model_path,
-            torch_dtype=torch.bfloat16,
-        )
-        pipe.to("cuda")
+        url = image_obj.get("url") or image_obj.get("content") or image_obj.get("data")
 
-    pipe.set_progress_bar_config(disable=True)
-    return pipe
+    if not url:
+        raise ValueError(f"Seedream image output has no URL/data field: {image_obj}")
+
+    if url.startswith("data:image/"):
+        return _decode_data_uri(url)
+
+    parsed = urlparse(url)
+    if not parsed.scheme.startswith("http"):
+        raise ValueError(f"Unsupported Seedream image URL: {url}")
+
+    resp = requests.get(url, timeout=120)
+    resp.raise_for_status()
+    return Image.open(BytesIO(resp.content)).convert("RGB")
 
 
-def generate_image_firered(pipe, taskA_in, taskA_out, taskB_in, text_prompt,
-                           seed=42, true_cfg_scale=4.0, num_inference_steps=40):
-    images = [
-        Image.open(os.path.join(DATA_TASKS_DIR, taskA_in)).convert("RGB"),
-        Image.open(os.path.join(DATA_TASKS_DIR, taskA_out)).convert("RGB"),
-        Image.open(os.path.join(DATA_TASKS_DIR, taskB_in)).convert("RGB"),
+def generate_image_seedream(taskA_in, taskA_out, taskB_in, text_prompt, args, upload_cache, attempt_idx=0):
+    import fal_client
+
+    taskA_in_path = os.path.join(DATA_TASKS_DIR, taskA_in)
+    taskA_out_path = os.path.join(DATA_TASKS_DIR, taskA_out)
+    taskB_in_path = os.path.join(DATA_TASKS_DIR, taskB_in)
+
+    with Image.open(taskB_in_path) as taskB_img:
+        target_size = taskB_img.size
+
+    image_urls = [
+        upload_image_to_fal(taskA_in_path, upload_cache),
+        upload_image_to_fal(taskA_out_path, upload_cache),
+        upload_image_to_fal(taskB_in_path, upload_cache),
     ]
 
-    try:
-        inputs = {
-            "image": images,
-            "prompt": text_prompt,
-            "generator": torch.Generator(device="cuda").manual_seed(seed),
-            "true_cfg_scale": true_cfg_scale,
-            "negative_prompt": " ",
-            "num_inference_steps": num_inference_steps,
-            "num_images_per_prompt": 1,
-        }
+    arguments = {
+        "prompt": text_prompt,
+        "image_size": {
+            "width": target_size[0],
+            "height": target_size[1],
+        },
+        "num_images": 1,
+        "max_images": 1,
+        "sync_mode": args.sync_mode,
+        "enable_safety_checker": args.enable_safety_checker,
+        "enhance_prompt_mode": args.enhance_prompt_mode,
+        "image_urls": image_urls,
+    }
+    if args.seed is not None:
+        arguments["seed"] = args.seed + attempt_idx
 
-        with torch.inference_mode():
-            output = pipe(**inputs)
-        return output.images[0]
+    try:
+        result = fal_client.subscribe(
+            SEEDREAM_ENDPOINT,
+            arguments=arguments,
+            with_logs=args.with_logs,
+            on_queue_update=on_queue_update if args.with_logs else None,
+        )
+        images = result.get("images", [])
+        if not images:
+            logging.error(f"Seedream returned no images: {result}")
+            return None
+
+        image = download_seedream_image(images[0])
+        if args.match_taskb_size and image.size != target_size:
+            image = image.resize(target_size, Image.Resampling.LANCZOS)
+        return image
     except Exception as e:
-        logging.error(f"FireRed generation failed: {e}")
+        logging.error(f"Seedream generation failed: {e}")
         return None
 
 
 def run_evaluation(args):
+    os.environ["FAL_KEY"] = FAL_KEY
+    if not os.environ.get("FAL_KEY"):
+        raise RuntimeError(
+            "FAL_KEY is not set. Create a fal API key and run: export FAL_KEY='your-api-key'"
+        )
+
     with open(EVAL_DATASET_JSON, 'r') as f:
         eval_data = json.load(f)
-        # Process entries in reverse order (last entries first)
-        eval_data.reverse()
 
     grouped = {}
     for entry in eval_data:
@@ -98,6 +176,7 @@ def run_evaluation(args):
         grouped.setdefault(pair_key, []).append(entry)
 
     final_results = {}
+    upload_cache = load_upload_cache()
 
     if args.use_qwen_for_prompt:
         from peft import PeftModel
@@ -119,8 +198,6 @@ def run_evaluation(args):
     else:
         prompt_qwen_model = None
         prompt_qwen_processor = None
-
-    pipe = load_firered_pipeline(args.model_path, optimized=args.optimized)
 
     for pair_key, entries in grouped.items():
         logging.info(f"Processing pair: {pair_key}")
@@ -170,6 +247,8 @@ def run_evaluation(args):
                         continue
 
                 logging.info(f"STARTING: Processing new combo {combo_id}.")
+                combo_tmp_dir = os.path.join(TMP_DIR, pair_key, combo_id)
+                os.makedirs(combo_tmp_dir, exist_ok=True)
 
                 text_prompt = generate_text_prompt(
                     taskA_in, taskA_out, taskB_in,
@@ -179,22 +258,36 @@ def run_evaluation(args):
                     fixed_prompt=args.fixed_prompt
                 )
 
-                gen_image = generate_image_firered(
-                    pipe, taskA_in, taskA_out, taskB_in, text_prompt,
-                    seed=args.seed,
-                    true_cfg_scale=args.true_cfg_scale,
-                    num_inference_steps=args.num_inference_steps,
-                )
-                if gen_image:
-                    logging.info(f"Successfully received an image from FireRed.")
-                    gen_image.save(final_path)
+                best_psnr = -np.inf
+                best_gen_path = None
+                taskB_gt_path = os.path.join(DATA_TASKS_DIR, taskB_out)
+
+                for i in range(args.num_tries):
+                    gen_image = generate_image_seedream(
+                        taskA_in, taskA_out, taskB_in, text_prompt, args, upload_cache,
+                        attempt_idx=i
+                    )
+                    if gen_image:
+                        logging.info(f"Attempt {i+1}: Successfully received an image from Seedream.")
+                        temp_path = os.path.join(combo_tmp_dir, f"gen_{i}.png")
+                        gen_image.save(temp_path)
+                        curr_psnr, _ = eval_quality(taskB_gt_path, temp_path)
+                        logging.info(f"Attempt {i+1}: Saved to {temp_path}, PSNR: {curr_psnr:.2f}")
+                        if curr_psnr > best_psnr:
+                            best_psnr = curr_psnr
+                            best_gen_path = temp_path
+                            logging.info(f"Attempt {i+1}: New best image found!")
+                    else:
+                        logging.warning(f"Attempt {i+1}: Seedream API call succeeded but returned NO image.")
+
+                if best_gen_path:
+                    shutil.move(best_gen_path, final_path)
 
                     psnr, ssim, viescore = evaluate_generated(
-                        os.path.join(DATA_TASKS_DIR, taskB_out), final_path,
+                        taskB_gt_path, final_path,
                         taskA_in, taskA_out, taskB_in,
                         pair_key.split('__')[0], pair_key.split('__')[1]
                     )
-
                     log_entry = {
                         "combo_id": combo_id,
                         "final_image": final_path,
@@ -206,6 +299,7 @@ def run_evaluation(args):
                     log_file.flush()
                     os.fsync(log_file.fileno())
                     logging.info(f"Combo {combo_id}: PSNR={psnr:.2f}, SSIM={ssim:.4f}, VIEScore={viescore:.2f}")
+                    shutil.rmtree(combo_tmp_dir, ignore_errors=True)
 
             all_scores = []
             if os.path.exists(log_path):
@@ -237,15 +331,21 @@ def run_evaluation(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model_path", type=str, default=FIRERED_MODEL_PATH)
     parser.add_argument("--use_qwen_for_prompt", action="store_true", default=False,
                         help="Use Qwen for generating text prompt")
     parser.add_argument("--fixed_prompt", type=str, default=None,
                         help="Fixed text prompt if not using Qwen")
     parser.add_argument("--max_samples", type=int, default=100)
-    parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--true_cfg_scale", type=float, default=4.0)
-    parser.add_argument("--num_inference_steps", type=int, default=40)
-    parser.add_argument("--optimized", action="store_true", default=False)
+    parser.add_argument("--num_tries", type=int, default=1,
+                        help="Number of generation attempts per combination")
+    parser.add_argument("--seed", type=int, default=None)
+    parser.add_argument("--sync_mode", action="store_true", default=False)
+    parser.add_argument("--disable_safety_checker", dest="enable_safety_checker",
+                        action="store_false", default=True)
+    parser.add_argument("--enhance_prompt_mode", type=str, default="standard",
+                        choices=["standard", "fast"])
+    parser.add_argument("--with_logs", action="store_true", default=False)
+    parser.add_argument("--no_match_taskb_size", dest="match_taskb_size",
+                        action="store_false", default=True)
     args = parser.parse_args()
     run_evaluation(args)
