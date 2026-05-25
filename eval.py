@@ -48,8 +48,7 @@ BASE_MODEL_PATH = "Qwen/Qwen3-VL-4B-Instruct"
 QWEN_MODEL = "qwen-3-vl-4b-instruct"
 CHECKPOINT_PATH = "Qwen3-VL/qwen-vl-finetune/output/checkpoint-4875"
 
-GEMINI_API_KEY = "sk-Uqq0JFYc56oSgTFmrnGRzZgbtV4NBoNJKm18hvnpQKoFHjJF"
-# GEMINI_API_KEY = "sk-2LE9SvYG170QGDDX1ajIUlsuVxt1bqY9nY92BZAKvSZlPWFL"
+GEMINI_API_KEY = "insert-your-gemini-api-key-here"  # Create a Gemini API key and set it as an environment variable or directly here
 GEMINI_MODEL = "gemini-2.5-flash-image-preview:generateContent"
 BASE_URL = "https://globalai.vip"
 # BASE_URL = "http://82.29.71.210:5300"

@@ -29,7 +29,7 @@ os.makedirs(TMP_DIR, exist_ok=True)
 BASE_MODEL_PATH = "Qwen/Qwen3-VL-4B-Instruct"
 CHECKPOINT_PATH = "Qwen3-VL/qwen-vl-finetune/output/checkpoint-4875"
 
-FAL_KEY = "3491e154-905d-4634-a722-a67d3697d5bd:8cc3acf45e8187b00f8af4fae0dbe0ac"
+FAL_KEY = "insert-your-fal-api-key-here"  # Create a fal API key and set it as an environment variable or directly here
 UPLOAD_CACHE_JSON = "data/output/baseline/seedream/fal_upload_cache.json"
 SEEDREAM_ENDPOINT = "fal-ai/bytedance/seedream/v4/edit"
 
@@ -336,7 +336,7 @@ if __name__ == "__main__":
     parser.add_argument("--fixed_prompt", type=str, default=None,
                         help="Fixed text prompt if not using Qwen")
     parser.add_argument("--max_samples", type=int, default=100)
-    parser.add_argument("--num_tries", type=int, default=1,
+    parser.add_argument("--num_tries", type=int, default=5,
                         help="Number of generation attempts per combination")
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--sync_mode", action="store_true", default=False)

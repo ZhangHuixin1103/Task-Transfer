@@ -87,8 +87,7 @@ def generate_image_firered(pipe, taskA_in, taskA_out, taskB_in, text_prompt,
 def run_evaluation(args):
     with open(EVAL_DATASET_JSON, 'r') as f:
         eval_data = json.load(f)
-        # Process entries in reverse order (last entries first)
-        eval_data.reverse()
+        # eval_data.reverse()
 
     grouped = {}
     for entry in eval_data:

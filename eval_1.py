@@ -40,8 +40,7 @@ TMP_DIR = "data/tmp/ablation/output_one_fix"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 os.makedirs(TMP_DIR, exist_ok=True)
 
-GEMINI_API_KEY = "sk-Uqq0JFYc56oSgTFmrnGRzZgbtV4NBoNJKm18hvnpQKoFHjJF"
-# GEMINI_API_KEY = "sk-2LE9SvYG170QGDDX1ajIUlsuVxt1bqY9nY92BZAKvSZlPWFL"
+GEMINI_API_KEY = "insert_your_gemini_api_key_here"
 GEMINI_MODEL = "gemini-2.5-flash-image-preview:generateContent"
 BASE_URL = "https://globalai.vip"
 # BASE_URL = "http://82.29.71.210:5300"
