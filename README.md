@@ -7,7 +7,7 @@ This project introduces T2T-VICL, a collaborative pipeline designed to explore c
 
 **VLM↔sVLM framework:** A bidirectional pipeline for knowledge transfer and prompt generation between large-scale and compact models.
 
-**Inference & evaluation scheme:** An automatic framework combining GRAINS, VIE score, and image quality assessment metrics to perform cross-task VICL without additional training or fine-tuning.
+**Inference & evaluation scheme:** An automatic framework combining VIE Score and image quality assessment metrics to perform cross-task VICL without additional training or fine-tuning.
 
 Our results show that T2T-VICL achieves stable performance across diverse low-level task pairs, demonstrating the feasibility of cross-task VICL within VLMs and highlighting its potential as a cost-effective paradigm for generalizable vision-language reasoning.
 
@@ -18,15 +18,15 @@ Our results show that T2T-VICL achieves stable performance across diverse low-le
 
 | Task | colorization | deblurring | dehazing | demoireing | denoising | deraining | harmonization | inpainting | light enhancement | reflection removal | shadow removal | style transfer |
 |:----:|:------------:|:----------:|:--------:|:----------:|:---------:|:---------:|:-------------:|:----------:|:-----------------:|:------------------:|:--------------:|:--------------:|
-| **colorization**       | - |   |   |   |   |   | ✔ |   | ✔ |   |   | ✔ |
+| **colorization**       | - |   |   |   |   |   | ✔ |   |   |   |   | ✔ |
 | **deblurring**         |   | - | ✔ | ✔ |   | ✔ |   |   |   |   |   |   |
-| **dehazing**           |   |   | - |   | ✔ | ✔ |   |   |   | ✔ |   |   |
+| **dehazing**           |   |   | - |   | ✔ | ✔ |   |   |   |   |   |   |
 | **demoireing**         |   |   | ✔ | - |   |   |   |   |   |   |   |   |
 | **denoising**          |   | ✔ |   |   | - |   |   |   | ✔ |   |   |   |
-| **deraining**          |   |   | ✔ | ✔ | ✔ | - |   |   |   |   | ✔ | ✔ |
-| **harmonization**      | ✔ |   |   |   |   |   | - |   | ✔ | ✔ |   | ✔ |
+| **deraining**          |   |   |   | ✔ | ✔ | - |   |   |   |   |   | ✔ |
+| **harmonization**      |   |   |   |   |   |   | - |   | ✔ |   |   | ✔ |
 | **inpainting**         | ✔ |   |   |   |   |   | ✔ | - | ✔ |   |   | ✔ |
-| **light enhancement**  | ✔ |   |   |   |   | ✔ | ✔ |   | - |   | ✔ | ✔ |
-| **reflection removal** |   |   | ✔ |   |   |   |   |   |   | - | ✔ |   |
+| **light enhancement**  | ✔ |   |   |   |   | ✔ |   |   | - |   | ✔ |   |
+| **reflection removal** |   |   | ✔ |   |   |   |   |   |   | - |   |   |
 | **shadow removal**     |   |   |   |   |   | ✔ |   |   |   | ✔ | - |   |
-| **style transfer**     | ✔ |   |   |   |   |   | ✔ |   | ✔ |   |   | - |
+| **style transfer**     |   |   |   |   |   |   |   |   | ✔ |   |   | - |
