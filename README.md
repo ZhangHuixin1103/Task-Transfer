@@ -225,4 +225,4 @@ Some scripts contain placeholder keys or machine-specific paths from the origina
 
 ## Acknowledgements
 
-This repository builds on [Qwen-VL](https://github.com/QwenLM/Qwen3-VL), [VIEScore](https://github.com/TIGER-AI-Lab/VIEScore), [GrAInS](https://github.com/duykhuongnguyen/GrAInS), and several recent image-editing VLMs. Please also follow the licenses and usage terms of the underlying datasets, pretrained models, and API providers.
+This repository builds on [Qwen-VL](https://github.com/QwenLM/Qwen3-VL), [VIEScore](https://github.com/TIGER-AI-Lab/VIEScore), and several recent image-editing VLMs. Please also follow the licenses and usage terms of the underlying datasets, pretrained models, and API providers.
