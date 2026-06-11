@@ -24,30 +24,43 @@ RESULT_DIR = OUTPUT_ROOT / "new_metrics"
 
 IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
 
-# From Table 2/3 rows requested by the user and the EMNLP'26 Appendix D.3 discussion:
-#   Colorization -> Style Transfer
-#   Harmonization -> Style Transfer
-#   Inpainting -> Colorization
-#   Light Enhancement -> Colorization
-#   Deraining -> Style Transfer
-#   Inpainting -> Style Transfer
-# plus Table 3 rows whose second task is deraining, evaluated with restoration/IQA metrics.
-TARGET_PAIRS = (
+ALL_PAIR_ORDER = (
+    "deblurring__dehazing",
+    "deblurring__deraining",
+    "deblurring__demoireing",
+    "dehazing__denoising",
+    "dehazing__deraining",
+    "demoireing__dehazing",
+    "denoising__deblurring",
+    "deraining__demoireing",
+    "deraining__denoising",
+    "colorization__harmonization",
     "colorization__style_transfer",
+    "harmonization__light_enhancement",
     "harmonization__style_transfer",
     "inpainting__colorization",
-    "light_enhancement__colorization",
-    "deraining__style_transfer",
+    "inpainting__harmonization",
+    "inpainting__light_enhancement",
     "inpainting__style_transfer",
-    "dehazing__deraining",
+    "light_enhancement__colorization",
+    "style_transfer__light_enhancement",
+    "shadow_removal__reflection_removal",
+    "denoising__light_enhancement",
+    "deraining__style_transfer",
+    "light_enhancement__deraining",
+    "light_enhancement__shadow_removal",
+    "reflection_removal__dehazing",
     "shadow_removal__deraining",
 )
-STYLE_TRANSFER_PAIRS = {
-    "colorization__style_transfer",
-    "harmonization__style_transfer",
-    "deraining__style_transfer",
-    "inpainting__style_transfer",
-}
+PAIR_ORDER_INDEX = {pair: idx for idx, pair in enumerate(ALL_PAIR_ORDER)}
+
+# Run all table pairs whose target task is one of the ambiguous/extra-metric
+# targets discussed in Appendix D.3 or requested for deraining analysis.
+TARGET_TASKS = {"colorization", "style_transfer", "deraining"}
+TARGET_PAIRS = tuple(
+    pair for pair in ALL_PAIR_ORDER if pair.rsplit("__", 1)[1] in TARGET_TASKS
+)
+STYLE_TRANSFER_PAIRS = {pair for pair in TARGET_PAIRS if pair.endswith("__style_transfer")}
 COLOR_APPEARANCE_PAIRS = {
     pair for pair in TARGET_PAIRS if pair.endswith("__colorization") or pair.endswith("__style_transfer")
 }
@@ -105,6 +118,15 @@ def hashed_id(*parts) -> str:
     return h.hexdigest()[:10]
 
 
+def pair_sort_key(pair_key: str) -> Tuple[int, str]:
+    return (PAIR_ORDER_INDEX.get(pair_key, len(ALL_PAIR_ORDER)), pair_key)
+
+
+def run_sort_key(run_name: str) -> Tuple[int, str]:
+    default_order = {name: idx for idx, name in enumerate(DEFAULT_RUNS)}
+    return (default_order.get(run_name, len(default_order)), run_name)
+
+
 @dataclass(frozen=True)
 class Sample:
     combo_id: str
@@ -141,7 +163,7 @@ def load_eval_samples(eval_json: Path, target_pairs: Iterable[str]) -> List[Samp
                 task_b_output=row["taskB_output"],
             )
         )
-    return samples
+    return sorted(samples, key=lambda sample: (pair_sort_key(sample.pair_key), sample.combo_id))
 
 
 def read_jsonl(path: Path) -> Iterable[dict]:
@@ -477,7 +499,7 @@ def collect_rows(args: argparse.Namespace, samples: List[Sample]) -> Tuple[List[
         run_root = Path(run_root)
         log_indexes = {
             pair_key: index_log_images(run_root, pair_key)
-            for pair_key in sorted({sample.pair_key for sample in samples})
+            for pair_key in sorted({sample.pair_key for sample in samples}, key=pair_sort_key)
         }
 
         for sample in tqdm(samples, desc=f"collect:{run_name}", disable=args.quiet):
@@ -547,7 +569,9 @@ def aggregate(rows: List[dict], group_metrics: Dict[Tuple[str, str], dict]) -> D
         grouped.setdefault((row["run"], row["pair_key"]), []).append(row)
 
     summaries = {}
-    for (run_name, pair_key), items in sorted(grouped.items()):
+    for (run_name, pair_key), items in sorted(
+        grouped.items(), key=lambda item: (run_sort_key(item[0][0]), pair_sort_key(item[0][1]))
+    ):
         metric_names = sorted({name for item in items for name in item["metrics"]})
         summary = {
             "run": run_name,
@@ -677,7 +701,9 @@ def run(args: argparse.Namespace) -> None:
         json.dump(raw_logs, f, indent=2)
 
     manifest = {
-        "target_pairs": sorted(target_pairs),
+        "target_tasks": sorted(TARGET_TASKS),
+        "target_pairs": sorted(target_pairs, key=pair_sort_key),
+        "all_pair_order": list(ALL_PAIR_ORDER),
         "runs": {name: str(path) for name, path in args.runs.items()},
         "num_samples_found": len(rows),
         "num_missing_images": len(missing),
