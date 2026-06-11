@@ -256,14 +256,17 @@ class OfficialLpips:
         if not self.available:
             return {}
 
+        assert self.torch is not None
+        assert self.model is not None
         gt_np, gen_np = load_rgb_pair(gt_path, gen_path)
         torch = self.torch
+        model = self.model
         with torch.no_grad():
             gt = torch.from_numpy(gt_np).permute(2, 0, 1).unsqueeze(0).float() / 127.5 - 1.0
             gen = torch.from_numpy(gen_np).permute(2, 0, 1).unsqueeze(0).float() / 127.5 - 1.0
             gt = gt.to(self.device)
             gen = gen.to(self.device)
-            score = self.model(gt, gen).item()
+            score = model(gt, gen).item()
         return {f"lpips_{self.net}": float(score)}
 
 
@@ -295,14 +298,17 @@ class OfficialDists:
         if not self.available:
             return {}
 
+        assert self.torch is not None
+        assert self.model is not None
         gt_np, gen_np = load_rgb_pair(gt_path, gen_path)
         torch = self.torch
+        model = self.model
         with torch.no_grad():
             gt = torch.from_numpy(gt_np).permute(2, 0, 1).unsqueeze(0).float() / 255.0
             gen = torch.from_numpy(gen_np).permute(2, 0, 1).unsqueeze(0).float() / 255.0
             gt = gt.to(self.device)
             gen = gen.to(self.device)
-            score = self.model(gt, gen).item()
+            score = model(gt, gen).item()
         return {"dists": float(score)}
 
 
