@@ -461,19 +461,12 @@ def run_official_artfid(
         return {"art_fid": None}, text.strip()
 
     metrics = {}
-    output_names = {
-        "ArtFID": "art_fid",
-        "FID": "artfid_style_fid",
-        "LPIPS": "artfid_lpips",
-        "content": "artfid_content",
-    }
-    for name, metric_name in output_names.items():
-        pattern = rf"{name}[^-+0-9]*([-+]?(?:\d+\.\d+|\d+)(?:[eE][-+]?\d+)?)"
-        match = re.search(pattern, text, flags=re.IGNORECASE)
-        if match:
-            metrics[metric_name] = float(match.group(1))
-    if "art_fid" not in metrics:
-        metrics["art_fid"] = parse_first_float(text)
+    match = re.search(
+        r"ArtFID\s+value:\s*([-+]?(?:\d+\.\d+|\d+)(?:[eE][-+]?\d+)?)",
+        text,
+        flags=re.IGNORECASE,
+    )
+    metrics["art_fid"] = float(match.group(1)) if match else parse_first_float(text)
     return metrics, text.strip()
 
 
@@ -572,10 +565,12 @@ def aggregate(rows: List[dict], group_metrics: Dict[Tuple[str, str], dict]) -> D
 
 def write_summary_csv(path: Path, summaries: Dict[str, dict]) -> None:
     metric_fields = sorted(
-        field
-        for row in summaries.values()
-        for field in row
-        if field not in {"run", "pair_key", "num_samples"}
+        {
+            field
+            for row in summaries.values()
+            for field in row
+            if field not in {"run", "pair_key", "num_samples"}
+        }
     )
     fields = ["run", "pair_key", "num_samples", *metric_fields]
     with path.open("w", newline="") as f:
