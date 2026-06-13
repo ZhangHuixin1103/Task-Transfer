@@ -1,0 +1,44 @@
+\section{Results}
+\label{sec:result}
+
+\subsection{Experimental Setup}
+
+\textbf{Datasets.}
+We build our study on a comprehensive collection of twelve representative low-level vision tasks. Specifically, we use GOPRO~\cite{nah2017deep} for image deblurring, D-HAZY~\cite{ancuti2016d} for dehazing, UHDM~\cite{yu2022towards} for demoireing, SIDD~\cite{abdelhamed2018high, abdelhamed2020ntire} for denoising, RainCityscapes~\cite{hu2019depth} for deraining, iHarmony4~\cite{cong2019image} for harmonization, DIV2K~\cite{agustsson2017ntire} with modifications for inpainting and colorization, LoL~\cite{wei2018deep} for low-light enhancement, SIR$^2$~\cite{wan2022benchmarking} for reflection removal, ISTD~\cite{wang2018stacked} for shadow removal, and Night2Day~\cite{laffont2014transient} for style transfer. Details are provided in Appendix Sec.~\ref{sec:data}. We perform experiments that scale quadratically with the number of task pairs.
+
+\noindent \textbf{Implementation details.} We conducted our experiments using two NVIDIA A100-SXM4 GPUs with 80 GB of memory each. We follow each dataset's standard train-test split whenever available, or adopt a 70/30 random division when no official split is provided. All images are resized to a unified resolution ($448 \times 448$ for training inputs, $224 \times 224$ for query inputs) to maintain compatibility with the VLM framework.
+
+\subsection{Cross-Task Results in Top-Tier Group}
+Table~\ref{tab:3} presents quantitative comparisons across twelve representative task pairs on Gemini and Seedream, each compared with its fixed-prompt baseline.
+Figure~\ref{fig:fig4} illustrates representative examples of cross-task ICL on Gemini, demonstrating how the VLM adapts flexibly to diverse tasks driven by conditioning implicit text prompts. Among these tasks, at least two of the three evaluation metrics consistently outperform the fixed-prompt baseline for both models, and the third metric remains very close. Notably, VIEScore improves throughout, highlighting the effectiveness of our implicit prompt-driven generalization mechanism. Additional relevant qualitative examples are provided in Appendix Sec.~\ref{sec:example}.
+
+\begin{figure*}[ht]
+    \centering
+    \includegraphics[width=\textwidth]{fig/figure4.pdf}
+    \caption{Representative Examples of Cross-Task In-Context Learning from Gemini in Twelve Pairs}
+    \label{fig:fig4}
+\vspace{-8pt}
+\end{figure*}
+
+\subsection{Cross-Task Diversity and Adaptability}
+The proposed VICL demonstrates consistent gains across diverse low-level vision tasks such as dehazing, deraining, demoireing. Beyond, the same prompting mechanism seamlessly extends to generation-oriented tasks such as low-light enhancement, effectively maintaining spatial layout and identity fidelity. Unlike prior approaches that are often confined to semantically similar domains, our method adapts seamlessly across both intra-category tasks (e.g., harmonization vs. light enhancement, demoireing vs. dehazing) and inter-category tasks (e.g., reflection removal vs. dehazing). These findings highlight the scalability and flexibility of our approach, showing that T2T-VICL can naturally bridge both perceptually related and unrelated tasks under a single model.
+
+\subsection{Generalization to Distant Tasks} Beyond absolute numbers, an important property is cross-task consistency. This consistency underlines the advantage of framing all tasks under a unified in-context prompting mechanism. Moreover, T2T-VICL generalizes to semantically distant task pairs such as denoising versus light enhancement, where task-specialized models tend to degrade without task-specific retraining. This highlights robustness as a key byproduct of the unified in-context paradigm.
+
+\input{tab/Table4}
+
+\subsection{Cross-Task Results in Second-Tier Group}
+Across another nine cross-task pairs in Table~\ref{tab:4}, our method consistently improves VIEScore over the fixed-prompt baseline on both Gemini and Seedream. The other two IQA metrics have slight declines in several cases. Interestingly, for these compositions, improvements are primarily reflected in the VIEScore rather than in the traditional fidelity metrics. Since VIE measures structural and relational coherence of visual information, it is more sensitive to semantic preservation than to strict intensity alignment. See detailed discussion in Appendix Sec.~\ref{sec:viescore}.
+
+\input{tab/Table6}
+
+\subsection{Ablation Study}
+
+We further investigate the scalability of our method under the traditional same-task VICL setting. Specifically, we conduct ablation studies on Gemini to validate the performance gains of T2T-VICL by: (1) applying VICL to the same task with a fixed prompt, and (2) applying VICL to the same task with an implicitly enriched prompt derived from same task samples using a similar pipeline as T2T-VICL. 
+Details of the two prompt configurations are provided in Sec.~\ref{sec:prompt} in Appendix.
+Table~\ref{tab:6} reports the results of same-task VICL with fixed and enhanced prompts.
+Experimental results demonstrate improvements in PSNR, SSIM, and VIEScore across multiple task pairs.
+
+
+\subsection{Discussion}
+Overall, our framework demonstrates strong one-shot generalization and robust visual consistency across a wide range of low-level vision tasks. By leveraging implicit prompt representations, the model effectively adapts to unseen task combinations without task-specific fine-tuning, achieving top-tier VIEScores in many cases. However, due to the inherent complexity of cross-task compositions, a few cases with limited reference samples occasionally produce content that does not exist in the original images, slightly lowering the fidelity-based indicators. Despite these imperfections, the overall visual consistency remains close to that of the top group. Future work will focus on adaptive balancing between semantic-level and pixel-level objectives to further improve realism and generalization across diverse unseen conditions.

@@ -1,0 +1,49 @@
+% \begin{table}[h!]
+% \centering
+% \caption{Categorization of Low-Level Vision Tasks}
+% \begin{tabular}{p{2.5cm} p{5.5cm}}
+% \hline
+% \textbf{Category} & \textbf{Tasks} \\ \hline
+% \textbf{Restoration} & Deblurring, Dehazing, Denoising, Deraining, Demoireing \\[3pt]
+% \textbf{Removal} & Reflection Removal, Shadow Removal \\[3pt]
+% \textbf{Generation / Enhancement} & Style Transfer, Light Enhancement, Colorization, Harmonization \\ \hline
+% \end{tabular}
+% \label{tab:task_categories}
+% \end{table}
+
+% \begin{table}[h!]
+% \centering
+% \caption{Categorization of Low-Level Vision Tasks}
+% \begin{tabular}{p{2.8cm} p{5.4cm}}
+% \hline
+% \textbf{Category} & \textbf{Tasks} \\ \hline
+% \textbf{Restoration} & Deblurring, Dehazing, Denoising, Deraining, Demoireing \\[3pt]
+% \textbf{Removal} & Reflection Removal, Shadow Removal \\[3pt]
+% \textbf{Generation / Enhancement} & Style Transfer, Light Enhancement, Colorization, Harmonization \\[3pt]
+% \textbf{Cross-Task Combination} & Inter-category compositions such as   Deblurring $\rightarrow$ Demoireing or Intra-category compositions such as Reflection Removal $\rightarrow$ Dehazing \\ \hline
+% \end{tabular}
+% \label{tab:task_categories}
+% \end{table}
+
+\begin{table}[!ht]
+\vspace{-6pt}
+\centering
+\footnotesize
+\captionsetup{width=0.99\columnwidth, skip=4pt, type=table}
+\caption{Categorization of low-level vision tasks. Based on this, we divide cross-task pairs into \textbf{intra-category} compositions such as ``Deblurring $\rightarrow$ Demoireing'', and \textbf{inter-category} compositions such as ``Reflection Removal $\rightarrow$ Dehazing''.}
+\vspace{-1pt}
+\renewcommand{\arraystretch}{1}
+\begin{tabularx}{\columnwidth}{p{0.24\columnwidth} X}
+\hline
+\textbf{Category} & \textbf{Tasks} \\ \hline
+\rowcolor{lightred!30}
+\textbf{Restoration} & \makecell[l]{Deblurring, Dehazing, Demoireing, \\Denoising, Deraining} \\
+\rowcolor{lightyellow!30}
+\textbf{Removal} & Reflection Removal, Shadow Removal \\
+\rowcolor{lightblue!30}
+\textbf{Generation\slash Enhancement} & Colorization, Harmonization, Inpainting, Light Enhancement, Style Transfer \\
+\hline
+\end{tabularx}
+\label{tab:1}
+\vspace{-6pt}
+\end{table}

@@ -6,7 +6,7 @@
 
 <p style="margin-top: 20px; margin-bottom: 20px" align="center">
   <a href="https://arxiv.org/abs/2511.16107"><img src="https://img.shields.io/badge/arXiv-Paper-b31b1b?logo=arxiv&logoColor=white" alt="Paper"></a>
-  <a href="https://github.com/ZhangHuixin1103/Task-Transfer"><img src="https://img.shields.io/badge/GitHub-Code-181717?logo=github&logoColor=white" alt="Code"></a>
+  <a href="https://github.com/ZhangHuixin1103/Task-Transfer-VICL-in-VLM"><img src="https://img.shields.io/badge/GitHub-Code-181717?logo=github&logoColor=white" alt="Code"></a>
   <a href="https://docs.google.com/forms/d/e/1FAIpQLSdMN7YiLaKvHdzYKIs8X_EFIAXFZZuTsysBZYj6iD8fZD1EkA/viewform"><img src="https://img.shields.io/badge/Google%20Drive-Data-4285F4?logo=googledrive&logoColor=white" alt="Google Drive Data"></a>
   <a href="https://huggingface.co/datasets/ZhangHuixin/VICL"><img src="https://img.shields.io/badge/Hugging%20Face-Data-FFD21E?logo=huggingface&logoColor=white" alt="Hugging Face Data"></a>
 </p>

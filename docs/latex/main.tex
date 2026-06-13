@@ -1,0 +1,211 @@
+\documentclass[11pt]{article}
+
+% Change "review" to "final" to generate the final (sometimes called camera-ready) version.
+% Change to "preprint" to generate a non-anonymous version with page numbers.
+\usepackage[final]{acl}
+
+\usepackage{times}
+\usepackage{latexsym}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{microtype}
+\usepackage{inconsolata}
+\usepackage{graphicx}
+
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{enumitem}
+\usepackage{amsmath}
+\usepackage{adjustbox}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{makecell}
+% \usepackage{geometry}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{stfloats}
+\usepackage{tcolorbox}
+
+\usepackage[table, svgnames]{xcolor}
+\definecolor{darkgray}{RGB}{90,90,90}
+\colorlet{red}{red!50!white}
+\colorlet{yellow}{yellow!50!white}
+\colorlet{blue}{SkyBlue!50!white}
+\colorlet{lightred}{red!90!white}
+\colorlet{lightyellow}{yellow!90!white}
+\colorlet{lightblue}{SkyBlue!90!white}
+\colorlet{lightorange}{orange!80!white}
+\colorlet{lightgreen}{LimeGreen!50!white}
+\colorlet{lightpurple}{purple!40!blue!60!white}
+
+\newcolumntype{S}{>{\raggedright\arraybackslash}m{1.46cm}}
+\newcolumntype{H}{>{\raggedright\arraybackslash}m{4.09cm}}
+\newcolumntype{C}{>{\centering\arraybackslash}m{0.79cm}}
+\newcolumntype{M}{>{\centering\arraybackslash}m{0.68cm}}
+\newcolumntype{G}{!{\color{gray!50}\vrule width 0.5pt}}
+\newcommand{\grayhline}{\arrayrulecolor{gray!30}\hline\arrayrulecolor{black}}
+
+\providecommand{\tabgain}[2]{%
+#1%
+\rlap{\hspace{-1.75em}\raisebox{-0.8em}{%
+\tiny\textcolor{green!70!black}{#2}}}
+}
+\providecommand{\tabloss}[2]{%
+#1%
+\rlap{\hspace{-1.75em}\raisebox{-0.8em}{%
+\tiny\textcolor{darkgray}{#2}}}
+}
+\providecommand{\tabsame}[2]{%
+#1%
+\rlap{\hspace{-1.75em}\raisebox{-0.8em}{%
+\tiny\textcolor{darkgray}{#2}}}
+}
+\newcommand{\tabgainsubscript}[2]{%
+  #1%
+  \textsubscript{\textcolor{green!70!black}{\tiny #2}}%
+}
+\providecommand{\tablosssubscript}[2]{
+  #1%
+  \textsubscript{\textcolor{darkgray}{\tiny #2}}%
+}
+\providecommand{\tabsamesubscript}[2]{
+  #1%
+  \textsubscript{\textcolor{darkgray}{\tiny #2}}%
+}
+
+\setlength{\abovecaptionskip}{3pt}
+\setlength{\belowcaptionskip}{1pt}
+
+\renewcommand{\footnotesize}{\scriptsize}
+
+\usepackage{silence}
+\WarningFilter{latex}{Command \showhyphens has changed.}
+
+% If the title and author information does not fit in the area allocated, uncomment the following
+%
+%\setlength\titlebox{<dim>}
+%
+% and set <dim> to something 5cm or larger.
+
+\title{T2T-VICL: Cross-Task Visual In-Context Learning \\via Implicit Text-Driven VLMs}
+
+% Author information can be set in various styles:
+% For several authors from the same institution:
+% \author{Author 1 \and ... \and Author n \\
+%         Address line \\ ... \\ Address line}
+% if the names do not fit well on one line use
+%         Author 1 \\ {\bf Author 2} \\ ... \\ {\bf Author n} \\
+% For authors from different institutions:
+% \author{Author 1 \\ Address line \\  ... \\ Address line
+%         \And  ... \And
+%         Author n \\ Address line \\ ... \\ Address line}
+% To start a separate ``row'' of authors use \AND, as in
+% \author{Author 1 \\ Address line \\  ... \\ Address line
+%         \AND
+%         Author 2 \\ Address line \\ ... \\ Address line \And
+%         Author 3 \\ Address line \\ ... \\ Address line}
+
+% \author{Shao-Jun Xia \\
+%   Duke University \\
+%   \texttt{shaojun.xia@duke.edu} \\\And
+%   Huixin Zhang \\
+%   Texas A\&M University \\
+%   \texttt{zhanghui21@tamu.edu} \\\And
+%   Zhengzhong Tu \\
+%   Texas A\&M University \\
+%   \texttt{tzz@tamu.edu} \\
+%   }
+
+\author{
+Shao-Jun Xia\thanks{Equal contribution.}\\
+Duke University\\
+{\texttt\small shaojun.xia@duke.edu}
+\\\And
+Huixin Zhang\footnotemark[1]\\
+Texas A\&M University\\
+{\texttt\small zhanghui21@tamu.edu}
+\\\And
+Zhengzhong Tu\thanks{Corresponding author.}\\
+Texas A\&M University\\
+{\texttt\small tzz@tamu.edu}
+}
+
+%\author{
+%  \textbf{First Author\textsuperscript{1}},
+%  \textbf{Second Author\textsuperscript{1,2}},
+%  \textbf{Third T. Author\textsuperscript{1}},
+%  \textbf{Fourth Author\textsuperscript{1}},
+%\\
+%  \textbf{Fifth Author\textsuperscript{1,2}},
+%  \textbf{Sixth Author\textsuperscript{1}},
+%  \textbf{Seventh Author\textsuperscript{1}},
+%  \textbf{Eighth Author \textsuperscript{1,2,3,4}},
+%\\
+%  \textbf{Ninth Author\textsuperscript{1}},
+%  \textbf{Tenth Author\textsuperscript{1}},
+%  \textbf{Eleventh E. Author\textsuperscript{1,2,3,4,5}},
+%  \textbf{Twelfth Author\textsuperscript{1}},
+%\\
+%  \textbf{Thirteenth Author\textsuperscript{3}},
+%  \textbf{Fourteenth F. Author\textsuperscript{2,4}},
+%  \textbf{Fifteenth Author\textsuperscript{1}},
+%  \textbf{Sixteenth Author\textsuperscript{1}},
+%\\
+%  \textbf{Seventeenth S. Author\textsuperscript{4,5}},
+%  \textbf{Eighteenth Author\textsuperscript{3,4}},
+%  \textbf{Nineteenth N. Author\textsuperscript{2,5}},
+%  \textbf{Twentieth Author\textsuperscript{1}}
+%\\
+%\\
+%  \textsuperscript{1}Affiliation 1,
+%  \textsuperscript{2}Affiliation 2,
+%  \textsuperscript{3}Affiliation 3,
+%  \textsuperscript{4}Affiliation 4,
+%  \textsuperscript{5}Affiliation 5
+%\\
+%  \small{
+%    \textbf{Correspondence:} \href{mailto:email@domain}{email@domain}
+%  }
+%}
+
+% #########
+% Submissions that do not conform to the required styles, including paper size, margin width, and font size restrictions, will be rejected without review.
+% #########
+
+\begin{document}
+\maketitle
+\begin{abstract}
+% Visual in-context learning (VICL) aims to solve a target visual task by conditioning on a few input-output demonstrations without any model training.
+% Recent advances in large vision-language models (VLMs) have shown promising VICL capability when the demonstration pair and the query belong to the same task. However, this assumption is typically impractical as the available demonstration may come from a different vision task than the query, making it unclear whether the model should imitate the demonstrated transformation or infer a new one from the query.
+Visual in-context learning (VICL) solves visual tasks by conditioning on a few input-output demonstrations without any model training.
+Recent advances in large vision-language models (VLMs) have shown promising VICL capability when the demonstration pair and the query belong to the same vision task, but real use cases often provide mismatched examples, making it unclear whether a VLM should imitate the demonstrated transformation or infer a new one from the query.
+This raises a fundamental question:
+\textbf{\textit{Can VLMs perform cross-task VICL where demonstration and query differ?}} % In the paper, we study this setting and propose T2T-VICL, a collaborative prompt-transfer framework for cross-task VICL. The key idea is to convert mismatched visual demonstrations into implicit, task-agnostic textual guidance without explicitly naming the tasks.
+In the paper, we study this cross-task VICL setting and propose T2T-VICL, a collaborative prompt-transfer framework, which converts mismatched visual demonstrations into implicit textual guidance without explicitly naming the tasks.
+To do so, a large teacher VLM first generates structured descriptions of visual changes and task differences between task pairs, from which we construct a dataset of diverse implicit cross-task relations. We then distill this capability into a lightweight student VLM that produces content-dependent prompts from a task-A demonstration pair and a task-B query. The generated prompt is used to guide a frozen image-editing VLM, and a score-based inference strategy is introduced to rank multiple candidates.
+% Experiments on 12 low-level vision tasks and 21 evaluated cross-task pairs show that T2T-VICL consistently improves task-aware alignment over fixed prompting and often also improves image fidelity, highlighting both the potential and the current limits of cross-task VICL in VLMs.
+Experiments on 12 low-level vision tasks and over 20 evaluated cross-task pairs show that T2T-VICL consistently improves task-aware alignment over fixed prompting and often also improves image fidelity, revealing both the potential and limits of cross-task VICL. Our code is available on GitHub.\footnote{\url{https://github.com/ZhangHuixin1103/Task-Transfer-VICL-in-VLM}}
+\end{abstract}
+
+\input{sec/1_intro}
+\input{sec/2_relat}
+\input{sec/3_method}
+\input{sec/4_result}
+\input{sec/5_concl}
+
+\section*{Limitations}
+Since our scope is primarily on low-level vision tasks, we select 12 representative low-level tasks, covering most commonly studied low-level tasks in the literature and exceeding the task coverage of many VICL or prompt-enhanced works in this field (e.g., MAE-VQGAN 3,  Painter 3, ProRes 4,  PromptIR 3, InstructIR 8). It is notable the number of cross-task experiments grows quadratically with the number of tasks, compared to same-task VICL, we will consider more niche tasks in the future. In some representative higher-level tasks, such as geometric problem-solving and spatial reasoning, VLMs may exhibit weak baseline performance, thus the practical applicability of our approach in these scenarios still require further investigation.
+Meantime, task transfer capability in VLMs is not unlimited and might depend on underlying similarity of low-level tasks. Our results indicate implicit task transfer is feasible but also constrained, which is partially consistent with previous studies such as Taskonomy~\cite{zamir2018taskonomy}.
+
+% \section*{Acknowledgments}
+
+\clearpage
+\bibliography{ref}
+
+\appendix
+\input{sec/suppl}
+
+\end{document}

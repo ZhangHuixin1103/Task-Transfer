@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="T2T-VICL studies cross-task visual in-context learning with implicit text-driven VLMs.">
+  <title>T2T-VICL</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav" aria-label="Primary navigation">
+      <a href="#method">Method</a>
+      <a href="#benchmark">Benchmark</a>
+      <a href="#results">Results</a>
+      <a href="#relation">Positioning</a>
+      <a href="#citation">Citation</a>
+    </nav>
+
+    <section class="hero">
+      <p class="venue">arXiv 2026</p>
+      <h1>T2T-VICL: Unlocking the Boundaries of Cross-Task Visual In-Context Learning via Implicit Text-Driven VLMs</h1>
+      <p class="authors">
+        Shao-Jun Xia* <span>Duke University</span> &middot; Huixin Zhang* <span>Texas A&amp;M University</span> &middot; Zhengzhong Tu <span>Texas A&amp;M University</span>
+      </p>
+      <p class="note">* Equal contribution. Corresponding author: Zhengzhong Tu.</p>
+
+      <div class="link-row" aria-label="Project links">
+        <a class="link-button paper" href="https://arxiv.org/abs/2511.16107" target="_blank" rel="noopener">Paper</a>
+        <a class="link-button code" href="https://github.com/ZhangHuixin1103/Task-Transfer-VICL-in-VLM" target="_blank" rel="noopener">Code</a>
+        <a class="link-button data" href="https://docs.google.com/forms/d/e/1FAIpQLSdMN7YiLaKvHdzYKIs8X_EFIAXFZZuTsysBZYj6iD8fZD1EkA/viewform" target="_blank" rel="noopener">Google Drive Data</a>
+        <a class="link-button hf" href="https://huggingface.co/datasets/ZhangHuixin/VICL" target="_blank" rel="noopener">Hugging Face Data</a>
+        <a class="link-button results" href="https://drive.google.com/drive/u/2/folders/1HePThPdjlGakg46b0fL_MFQvUQp2njMD" target="_blank" rel="noopener">Results</a>
+      </div>
+
+      <p class="summary">
+        Can a VLM learn from a demonstration of one visual task, then solve a different visual task on a query image? T2T-VICL turns mismatched visual demonstrations into implicit textual guidance and uses that guidance to drive frozen image-editing VLMs.
+      </p>
+    </section>
+  </header>
+
+  <main>
+    <section class="figure-band first-figure" aria-labelledby="overview-title">
+      <div class="section-heading compact">
+        <p class="eyebrow">Problem setting</p>
+        <h2 id="overview-title">From same-task VICL to cross-task VICL</h2>
+      </div>
+      <figure class="wide-figure">
+        <img src="assets/vicl-overview.png" alt="Specific-task VICL compared with T2T-VICL cross-task prompting.">
+        <figcaption>Standard VICL assumes the demonstration and query share a task. T2T-VICL studies the harder setting where the demonstration task and target task differ.</figcaption>
+      </figure>
+    </section>
+
+    <section id="method" class="section">
+      <div class="section-heading">
+        <p class="eyebrow">Method</p>
+        <h2>A VLM -> sVLM -> VLM pipeline for implicit task transfer</h2>
+        <p>
+          T2T-VICL uses language as a bridge between different visual transformations. The teacher observes both source and target task pairs, the student learns to infer the missing target relation from three images, and the final VLM performs image editing under the generated prompt.
+        </p>
+      </div>
+
+      <figure class="wide-figure">
+        <img src="assets/framework.png" alt="T2T-VICL framework with implicit relationship generation, student prompt transfer, and cross-task inference.">
+        <figcaption>Pipeline overview: implicit relationship generation, large-to-small prompt transfer, and score-based cross-task inference.</figcaption>
+      </figure>
+
+      <div class="steps">
+        <article class="step-card">
+          <span class="step-index">01</span>
+          <h3>Generate implicit task relations</h3>
+          <p>Qwen2.5-VL-32B-Instruct receives four images from Task A and Task B, then writes concise descriptions of inputs, visual changes, and task differences without naming task labels directly.</p>
+        </article>
+        <article class="step-card">
+          <span class="step-index">02</span>
+          <h3>Distill the relation writer</h3>
+          <p>Qwen3-VL-4B-Instruct is fine-tuned on three-image inputs: Task A input, Task A output, and Task B input. It learns to output the teacher-style implicit prompt needed at inference time.</p>
+        </article>
+        <article class="step-card">
+          <span class="step-index">03</span>
+          <h3>Edit with a frozen generator</h3>
+          <p>The generated prompt conditions an image-editing VLM such as Gemini-2.5-Flash. Multiple stochastic candidates are ranked with PSNR, SSIM, and VIEScore.</p>
+        </article>
+      </div>
+
+      <figure class="wide-figure inset">
+        <img src="assets/inference-example.png" alt="Detailed example comparing the fixed prompt and the implicit prompt in T2T-VICL inference.">
+        <figcaption>An inference-stage example: the implicit prompt specifies how the target image should change, while avoiding explicit task names.</figcaption>
+      </figure>
+    </section>
+
+    <section id="benchmark" class="section alt">
+      <div class="section-heading">
+        <p class="eyebrow">Benchmark</p>
+        <h2>12 low-level vision tasks, 26 ordered cross-task pairs</h2>
+        <p>
+          The released VICL benchmark contains paired image data, teacher-generated implicit task descriptions, Qwen-VL SFT metadata, and cross-task evaluation files. Access is gated for research-only, non-commercial use through the data links above.
+        </p>
+      </div>
+
+      <div class="stats-grid">
+        <article>
+          <strong>12</strong>
+          <span>low-level tasks</span>
+        </article>
+        <article>
+          <strong>26</strong>
+          <span>ordered task pairs</span>
+        </article>
+        <article>
+          <strong>52K</strong>
+          <span>training descriptions</span>
+        </article>
+        <article>
+          <strong>2.6K</strong>
+          <span>cross-task eval samples</span>
+        </article>
+      </div>
+
+      <div class="task-columns">
+        <article>
+          <h3>Restoration</h3>
+          <p>Deblurring, dehazing, demoireing, denoising, deraining.</p>
+        </article>
+        <article>
+          <h3>Removal</h3>
+          <p>Reflection removal and shadow removal.</p>
+        </article>
+        <article>
+          <h3>Generation / enhancement</h3>
+          <p>Colorization, harmonization, inpainting, light enhancement, style transfer.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="results" class="section">
+      <div class="section-heading">
+        <p class="eyebrow">Results</p>
+        <h2>Implicit prompts consistently improve task-aware visual alignment</h2>
+        <p>
+          Across top-tier task pairs, T2T-VICL improves VIEScore for all twelve Gemini-2.5-Flash comparisons against the fixed-prompt baseline. The extended experiments also evaluate Seedream 4.0 and open-source image-editing backbones.
+        </p>
+      </div>
+
+      <div class="result-highlights">
+        <article>
+          <h3>Top-tier group</h3>
+          <p>All 12 top-tier cross-task pairs improve in VIEScore with Qwen-generated implicit prompts. Large gains include Inpainting -> Style Transfer, Light Enhancement -> Deraining, and Demoireing -> Dehazing.</p>
+        </article>
+        <article>
+          <h3>Second-tier group</h3>
+          <p>All 9 second-tier pairs improve in VIEScore, even when PSNR or SSIM may drop on one-to-many tasks such as colorization and style transfer.</p>
+        </article>
+        <article>
+          <h3>Model generality</h3>
+          <p>The same prompt-transfer idea is tested with Gemini, Seedream, FLUX.2-dev, OmniGen 2, Qwen-Image-Edit-2511, and FireRed-Image-Edit-1.1.</p>
+        </article>
+      </div>
+
+      <figure class="wide-figure">
+        <img src="assets/top-tier-table.png" alt="Top-tier Gemini quantitative results table.">
+        <figcaption>Top-tier Gemini results: Qwen-generated prompts improve VIEScore on every listed pair.</figcaption>
+      </figure>
+
+      <figure class="wide-figure">
+        <img src="assets/top-tier-examples.png" alt="Representative cross-task image editing examples from top-tier task pairs.">
+        <figcaption>Representative top-tier qualitative results across restoration, removal, and generation-oriented task pairs.</figcaption>
+      </figure>
+
+      <figure class="wide-figure">
+        <img src="assets/second-tier-results.png" alt="Second-tier quantitative table and qualitative examples.">
+        <figcaption>Second-tier results: VIEScore captures task consistency where pixel fidelity metrics can be less informative.</figcaption>
+      </figure>
+
+      <div class="figure-pair">
+        <figure>
+          <img src="assets/seedream-examples.png" alt="Seedream qualitative cross-task examples.">
+          <figcaption>Seedream 4.0 qualitative examples from the extended experiments.</figcaption>
+        </figure>
+        <figure>
+          <img src="assets/additional-backbones.png" alt="Additional backbone quantitative results for FLUX.2, OmniGen 2, Qwen-Image-Edit, and FireRed-Image-Edit.">
+          <figcaption>Additional backbones show the prompt-transfer mechanism is not tied to a single generator.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section id="relation" class="section alt">
+      <div class="section-heading">
+        <p class="eyebrow">Positioning</p>
+        <h2>Complementary to task-transfer analysis in finetuned VLMs</h2>
+        <p>
+          <a href="https://arxiv.org/abs/2511.18787" target="_blank" rel="noopener">Understanding Task Transfer in Vision-Language Models</a> studies how finetuning open-weight VLMs on one perception task changes zero-shot performance on other tasks, introducing PGF and transfer graphs across 13 perception tasks. T2T-VICL studies a different but adjacent question: whether a VLM can use a visual demonstration from Task A to perform Task B in-context.
+        </p>
+      </div>
+
+      <div class="comparison-grid">
+        <article>
+          <h3>Shared ground</h3>
+          <p>Both works ask how visual tasks relate to one another and both treat low-level/perception tasks as a useful testbed for VLM transfer behavior.</p>
+        </article>
+        <article>
+          <h3>T2T-VICL focus</h3>
+          <p>T2T-VICL is an executable cross-task image editing pipeline: it generates implicit prompts, conditions frozen image-editing VLMs, and evaluates produced images.</p>
+        </article>
+        <article>
+          <h3>Practical advantage</h3>
+          <p>The final generator does not need target-task finetuning. The learned prompt bridge is interpretable, reusable across backbones, and packaged with a cross-task text-image dataset.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="citation" class="section citation-section">
+      <div class="section-heading compact">
+        <p class="eyebrow">Citation</p>
+        <h2>BibTeX</h2>
+      </div>
+      <div class="bibtex-wrap">
+        <button type="button" id="copy-bibtex">Copy</button>
+        <pre><code id="bibtex">@article{xia2026t2tvicl,
+  title={T2T-VICL: Unlocking the Boundaries of Cross-Task Visual In-Context Learning via Implicit Text-Driven VLMs},
+  author={Xia, Shao-Jun and Zhang, Huixin and Tu, Zhengzhong},
+  journal={arXiv preprint arXiv:2511.16107},
+  year={2026}
+}</code></pre>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>Official project page for T2T-VICL. Data access is intended for research-only, non-commercial use.</p>
+  </footer>
+
+  <script>
+    const copyButton = document.getElementById('copy-bibtex');
+    copyButton.addEventListener('click', async () => {
+      const text = document.getElementById('bibtex').innerText;
+      await navigator.clipboard.writeText(text);
+      copyButton.textContent = 'Copied';
+      window.setTimeout(() => {
+        copyButton.textContent = 'Copy';
+      }, 1400);
+    });
+  </script>
+</body>
+</html>
